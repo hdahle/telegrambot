@@ -5,20 +5,22 @@
  * H. Dahle, 2020
  */
 
+// We need moment for date-math
+var moment = require('moment');
 
 // Parse command line, get the Telegram API Key
 var argv = require('minimist')(process.argv.slice(2));
-let apiKey = argv.apikey; // filename from cmd line
+let apiKey = argv.apikey;
 if (!apiKey) {
   console.log('Usage: tbot --apikey <telegram api key>');
   return;
 }
-const { Telegraf } = require('telegraf')
+const { Telegraf } = require('telegraf');
 const bot = new Telegraf(apiKey);
 
-var fetch = require('node-fetch')
+var fetch = require('node-fetch');
 
-bot.start((ctx) => ctx.reply('Welcome ' + ctx.update.message.from.first_name + '!'))
+bot.start((ctx) => ctx.reply('Welcome ' + ctx.update.message.from.first_name + '!'));
 
 bot.help((ctx) => ctx.reply(
   'Hi! These are some commands you can try:\n' +
@@ -27,17 +29,29 @@ bot.help((ctx) => ctx.reply(
   '/renewables - latest information on renewable energy sources'
 ));
 
-bot.on('sticker', (ctx) => ctx.reply('Nice sticker 👍'))
-bot.hears('hi', (ctx) => ctx.reply('Hey there'))
+bot.on('sticker', (ctx) => ctx.reply('Nice sticker 👍'));
+bot.hears('hi', (ctx) => ctx.reply('Hey there'));
 
-bot.hears('renewable', (ctx) => ctx.replyWithPhoto({ source: 'img/ig-irena-2020.png' }))
-bot.hears('emissions', (ctx) => ctx.replyWithPhoto({ source: 'img/ig-oxfam-1080x1080.png' }))
-bot.hears('wri', (ctx) => ctx.replyWithPhoto({ source: 'img/ig-wri-1080x1080.png' }))
+bot.hears('renewable', (ctx) => ctx.replyWithPhoto({ source: 'img/irena-cost-of-renewables-canvas-png.png' }));
+bot.hears('emissions', (ctx) => ctx.replyWithPhoto({ source: 'img/oxfam-2020-canvas-png.png' }));
+bot.hears('wri', (ctx) => ctx.replyWithPhoto({ source: 'img/wri-emissions-2016-canvas-png.png' }));
+bot.hears('corona', (ctx) => ctx.replyWithMediaGroup([
+  {
+    media: { source: 'img/corona-deaths-per-capita-canvas-png.png' },
+    caption: "Deaths per capita per region",
+    type: 'photo'
+  },
+  {
+    media: { source: 'img/corona-deaths-top-20-canvas-png.png' },
+    caption: "Countries with highest fatality rates",
+    type: 'photo'
+  }
+]));
 
 bot.hears('co2', (ctx) => {
-  let firstname = ctx.update.message.from.first_name
-  console.log(ctx.update.message.from.first_name)
-  ctx.reply(firstname + ', please wait while I get the latest CO2 measurements for you')
+  let firstname = ctx.update.message.from.first_name;
+  console.log(ctx.update.message.from.first_name);
+  ctx.reply(firstname + ', please wait while I get the latest CO2 measurements for you');
   function status(response) {
     if (response.status >= 200 && response.status < 300) {
       return Promise.resolve(response)
@@ -53,15 +67,14 @@ bot.hears('co2', (ctx) => {
     .then(status)
     .then(json)
     .then(results => {
-      console.log(results)
+      console.log(results);
       let d = results.data.pop();
-      let y1 = (d.value - d.valueLastYear) / d.valueLastYear * 100
-      y1 = Math.trunc(y1 * 100) / 100
-      let y10 = (d.value - d.value10yrsAgo) / d.value10yrsAgo * 100
-      y10 = Math.trunc(y10 * 100) / 100
+      let daysago = Math.trunc(moment.duration(moment().diff(moment(d.date))).as('days'));
       ctx.reply(
-        'Atmospheric CO2: ' + d.value + 'ppm (measured at ' + d.date + '). ' +
-        'This is ' + y1 + '% higher than a year ago, and ' + y10 + '% higher than 10 years ago 🤔')
+        'The atmospheric CO2 level is ' + d.value + 'ppm measured ' + daysago + ' days ago.\n' +
+        'This is ' + d.change1yr + '% higher than a year ago, and ' + d.change10yr + '% higher than 10 years ago 🤔\n' +
+        'CO2 levels were between 180-280ppm for hundreds of thousands of years until the beginning of the industrial age.'
+      );
     })
     .catch(err => {
       ctx.reply('Something went wrong, no measurements available right now 😬')
@@ -69,4 +82,4 @@ bot.hears('co2', (ctx) => {
     })
 })
 
-bot.launch()
+bot.launch();

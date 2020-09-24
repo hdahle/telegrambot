@@ -1,0 +1,31 @@
+{
+  "name": "tbot",
+  "version": "1.0.0",
+  "description": "A naive Bot for Telegram using the Telegraf bot framework",
+  "main": "bot.js",
+  "dependencies": {
+    "minimist": "^1.2.5",
+    "moment": "^2.29.0",
+    "telegraf": "^3.38.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bot": "node bot.js --apikey `cat apikey.txt`"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hdahle/telegrambot.git"
+  },
+  "keywords": [
+    "telegram",
+    "node",
+    "bot"
+  ],
+  "author": "HD",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hdahle/telegrambot/issues"
+  },
+  "homepage": "https://github.com/hdahle/telegrambot#readme"
+}
