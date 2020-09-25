@@ -43,6 +43,7 @@ bot.start((ctx) => {
     '/start - this help\n' +
     '/co2 - current and historical CO2 levels\n' +
     '/renewables - solar, wind, etc\n' +
+    '/emissions - greenhouse gas emissions' +
     '/fossil - oil, gas, coal statistics\n' +
     '/sealevel - global sea level rise\n' +
     'Click on any of these, or just type in the command word without the leading \'\/\''
@@ -67,9 +68,34 @@ bot.action('eialcoe', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/eia-cost-of-electricity.png' })
 })
 
-bot.hears('emissions', (ctx) => ctx.replyWithPhoto({ source: 'img/oxfam-2020.png' }));
-
-
+//
+// Emissions
+//
+bot.hears(/[Ee]mission/, (ctx) => {
+  ctx.reply('The annual greenhouse gas emissions are now above 50 billion tons CO2 equivalents per year. That is equivalent to almost 7 tons of CO2 per person on the planet');
+  ctx.replyWithPhoto({ source: 'img/wri-emissions-2016.png' })
+  ctx.reply('Other statistics',
+    Markup.inlineKeyboard([
+      Markup.callbackButton('By Income Group', 'oxfam'),
+      Markup.callbackButton('Norway', 'emissionsnorway'),
+      Markup.callbackButton('By Fuel Type', 'emissionsbyfueltype'),
+      Markup.callbackButton('By Region', 'emissionsbyregion'),
+      Markup.callbackButton('CO2 vs GDP', 'co2vsgdp')
+    ]).extra()
+  )
+});
+bot.action('irena', (ctx) => {
+  return ctx.replyWithPhoto({ source: 'img/irena-cost-of-renewables.png' })
+})
+bot.action('oxfam', (ctx) => {
+  return ctx.replyWithPhoto({ source: 'img/oxfam-2020.png' })
+})
+bot.action('co2vsgdp', (ctx) => {
+  return ctx.replyWithPhoto({ source: 'img/co2-vs-gdp.png' })
+})
+bot.action('emissionsbyregion', (ctx) => {
+  return ctx.replyWithPhoto({ source: 'img/plotEmissionsByRegion.png' })
+})
 //
 // Fossil fuels - Respond with text and button for charts
 //
@@ -100,7 +126,7 @@ bot.action('emissionsbyfueltype', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/plotEmissionsByFuelType.png' })
 })
 bot.action('emissionsnorway', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotEmissionsNorway' })
+  return ctx.replyWithPhoto({ source: 'img/plotEmissionsNorway.png' })
 })
 
 //
@@ -170,7 +196,6 @@ bot.action('co2last5M', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/plotVostok.png' })
 })
 
-
 //
 // Sealevel - Respond with text and button for chart
 //
@@ -212,9 +237,9 @@ bot.action('sealevel', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/plotSeaLevel.png' })
 })
 
-
-
+//
 // Catch all for actions we don't know how to handle
+//
 bot.action(/.+/, (ctx) => {
   return ctx.answerCbQuery(`Oh, ${ctx.match[0]}! I don't know how to respond to that`)
 })
