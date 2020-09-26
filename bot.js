@@ -61,7 +61,34 @@ function startAndHelp(ctx) {
 bot.start((ctx) => { startAndHelp(ctx) });
 bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) })
 
+//
+// Experimental
+//
+bot.command('custom', ({ reply }) => {
+  return reply('Custom buttons keyboard', Markup
+    .keyboard([
+      ['🔍 Search', '😎 Popular'], // Row1 with 2 buttons
+      ['☸ Setting', '📞 Feedback'], // Row2 with 2 buttons
+      ['📢 Ads', '⭐️ Rate us', '👥 Share'], // Row3 with 3 buttons
+      ['Global Warming', 'Sea Level Rise']
+    ])
+    .oneTime()
+    .resize()
+    .extra()
+  )
+})
+bot.hears('🔍 Search', ctx => ctx.reply('Yay!'))
+bot.hears('📢 Ads', ctx => ctx.reply('Free hugs. Call now!'))
+bot.action('Search', ctx => ctx.reply('Yay!'))
+bot.action('Ads', ctx => ctx.reply('Free hugs. Call now!'))
 
+bot.command('inline', (ctx) => {
+  return ctx.reply('<b>Coke</b> or <i>Pepsi?</i>', Extra.HTML().markup((m) =>
+    m.inlineKeyboard([
+      m.callbackButton('Search', 'Search'),
+      m.callbackButton('Ads', 'Ads')
+    ])))
+})
 
 //
 // Temperature - Global warming
@@ -121,8 +148,8 @@ bot.hears(/emissi/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.replyWithMarkdown('The annual greenhouse gas emissions are now above *50 billion tons* CO2 equivalents per year. That is equivalent to almost 7 tons of CO2 per person on the planet');
   ctx.replyWithPhoto({ source: 'img/wri-emissions-2016.png' })
-  setTimeout(function () {
-    ctx.reply('Other 📈 charts you might like:',
+  setTimeout(() => {
+    ctx.reply('Other emissions charts 📈 you might like:',
       Markup.inlineKeyboard([
         [
           Markup.callbackButton('By Income Group', 'oxfam'),
@@ -188,13 +215,19 @@ bot.hears(/(fossil)|(coal)|(oil)|(gas)/i, (ctx) => {
   )
 })
 bot.action('eiaoil', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotEiaOil.png' })
+  return ctx.replyWithPhoto({ source: 'img/plotEiaOil.png' },
+    Extra.caption('Global oil production is about *100 million barrels per day*, and it is increasing. Most of the increase is due to the sharp growth in US shale oil').markdown()
+  )
 })
 bot.action('eiagas', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotEiaGas.png' })
+  return ctx.replyWithPhoto({ source: 'img/plotEiaGas.png' },
+    Extra.caption('This chart shows annual production in billion cubic metres.').markdown()
+  )
 })
 bot.action('eiacoal', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotEiaCoal.png' })
+  return ctx.replyWithPhoto({ source: 'img/plotEiaCoal.png' },
+    Extra.caption('This chart shows annual production in million metric tons. *China represents 45%* of total coal production').markdown()
+  )
 })
 bot.action('eiael', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/plotEiaEl.png' })
@@ -242,19 +275,20 @@ bot.hears(/(corona)|(covid)/i, (ctx) => {
   ctx.replyWithPhoto({ source: 'img/ch1.png' },
     Extra.caption('⚰️ Number of deaths per day, worldwide')
   );
-  setTimeout(function () {
+  setTimeout(() => {
     ctx.reply('Other related data:',
       Markup.inlineKeyboard([
         Markup.callbackButton('⚰️ Deaths, Top 20 Countries', 'corona-deaths-top-20')
       ]).extra()
     )
   }, 2000);
-  setTimeout(function () {
+  setTimeout(() => {
     ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona us` ... and so on')
   }, 4000);
 })
 bot.action('corona-deaths-top-20', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' })
+  return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
+    Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day').markdown())
 })
 
 function replyCo210(ctx) {
@@ -280,7 +314,7 @@ function replyCo2500K(ctx) {
 }
 
 //
-// CO2 - Respond with text and buttons for three images
+// CO2 YEARS - Respond with text and buttons for three images
 //
 bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', ctx.match[1]);
@@ -290,50 +324,44 @@ bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
     case 500000: return replyCo2500K(ctx); break;
     default:
   }
-  return ctx.reply('I am not sure what you are asking...😕')
+  return ctx.reply('I do not know how to respond...😕')
 });
 
-bot.hears(/co2/i, (ctx) => {
+//
+// CO2
+//
+bot.hears(/co2/i, async (ctx) => {
   let firstname = ctx.update.message.from.first_name;
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.reply(firstname + ', please wait while we get the latest CO2 measurements from NOAA Earth Systems Research Lab in Hawaii');
-  function status(response) {
-    if (response.status >= 200 && response.status < 300) {
-      return Promise.resolve(response)
-    } else {
-      console.log(response)
-      return Promise.reject(new Error(response.statusText))
-    }
+  try {
+    const response = await fetch("https://api.dashboard.eco/maunaloaco2-daily");
+    const results = await response.json();
+    const { date, value, change1yr, change10yr } = results.data.pop();
+    const days = Math.trunc(moment.duration(moment().diff(moment(date))).as('days'));
+    const caption = 'The atmospheric CO2 level is *' + Math.trunc(value) + 'ppm* measured '
+      + ((days == 1) ? 'yesterday\n' : days.toString()) + ' days ago\n'
+      + 'This is ' + change1yr + '% higher than a year ago, and '
+      + change10yr + '% higher than 10 years ago 🤔\n';
+    ctx.replyWithMarkdown(caption)
   }
-  function json(response) {
-    return response.json()
+  catch (err) {
+    console.log('Error hears(co2):', err)
+    ctx.reply('Oops ... unable to fetch data, sorry 😟')
   }
-  fetch("https://api.dashboard.eco/maunaloaco2-daily")
-    .then(status)
-    .then(json)
-    .then(results => {
-      //console.log(results);
-      let d = results.data.pop();
-      let days = Math.trunc(moment.duration(moment().diff(moment(d.date))).as('days'));
-      let s = (days == 1) ? 'yesterday\n' : days + ' days ago\n'
-      ctx.replyWithMarkdown('The atmospheric CO2 level is *' + Math.trunc(d.value) + 'ppm* measured ' + s +
-        'This is ' + d.change1yr + '% higher than a year ago, and ' + d.change10yr + '% higher than 10 years ago 🤔\n');
-      // Wait a bit before sending more info
-      setTimeout(function () {
-        ctx.reply('We have a few charts that illustrate the CO2 level over time - have a look!',
-          Markup.inlineKeyboard([
-            Markup.callbackButton('📈 10 years', 'co2last10'),
-            Markup.callbackButton('📈 2000 years', 'co2last2000'),
-            Markup.callbackButton('📈 500.000 years', 'co2last5M')
-          ]).extra()
-        )
-      }, 3000);
-    })
-    .catch(err => {
-      ctx.reply('Something went wrong, no measurements available right now 😬')
-      console.log('Error', err)
-    })
+  // Wait a bit before sending more info
+  setTimeout(function () {
+    ctx.reply('We have a few charts that illustrate the CO2 level over time - have a look!',
+      Markup.inlineKeyboard([
+        Markup.callbackButton('📈 10 years', 'co2last10'),
+        Markup.callbackButton('📈 2000 years', 'co2last2000'),
+        Markup.callbackButton('📈 500.000 years', 'co2last5M')
+      ]).extra()
+    )
+  }, 3000);
 })
+
+
 bot.action('co2last10', (ctx) => {
   return replyCo210(ctx);
 })
@@ -347,49 +375,34 @@ bot.action('co2last5M', (ctx) => {
 //
 // Sealevel - Respond with text and button for chart
 //
-bot.hears(/sea[ ]*l/i, (ctx) => {
+bot.hears(/sea[ ]*l/i, async (ctx) => {
   let firstname = ctx.update.message.from.first_name;
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  console.log('User:', firstname, 'Text:', ctx.update.message.text);
   ctx.reply(firstname + ', please wait while I get the latest sea level measurements from CSIRO in Australia');
-  function status(response) {
-    if (response.status >= 200 && response.status < 300) {
-      return Promise.resolve(response)
-    } else {
-      console.log(response)
-      return Promise.reject(new Error(response.statusText))
-    }
+  try {
+    const response = fetch("https://api.dashboard.eco/CSIRO_Alt");
+    const results = response.json();
+    const latest = results.data.pop();
+    const first = results.data.shift();
+    const days = moment.duration(moment(latest.t).diff(moment(first.t))).as('days');
+    const perDecade = Math.trunc(10 * 365 * (latest.y - first.y) / days);
+    const caption = 'The latest data is from ' + moment(latest.t).format('MMMM D') +
+      ' and shows that global sea level has increased by *' + (latest.y - first.y) +
+      'mm* since ' + moment(first.t).format('MMMM D, YYYY') + '. This is about *' +
+      perDecade + 'mm* per decade';
+    ctx.replyWithPhoto({ source: 'img/plotSeaLevel.png' }, Extra.caption(caption).markdown());
   }
-  function json(response) {
-    return response.json()
+  catch (err) {
+    ctx.reply('Something went wrong, no measurements available right now 😬')
+    console.log('Error hears(sealevel):', err)
   }
-  fetch("https://api.dashboard.eco/CSIRO_Alt")
-    .then(status)
-    .then(json)
-    .then(results => {
-      let latest = results.data.pop();
-      let first = results.data.shift();
-      let days = moment.duration(moment(latest.t).diff(moment(first.t))).as('days');
-      let perDecade = Math.trunc(10 * 365 * (latest.y - first.y) / days);
-      let caption = 'The latest data is from ' + moment(latest.t).format('MMMM D') +
-        ' and shows that global sea level has increased by *' + (latest.y - first.y) +
-        'mm* since ' + moment(first.t).format('MMMM D, YYYY') + '. This is about *' +
-        perDecade + 'mm* per decade';
-      ctx.replyWithPhoto({ source: 'img/plotSeaLevel.png' }, Extra.caption(caption).markdown());
-    })
-    .catch(err => {
-      ctx.reply('Something went wrong, no measurements available right now 😬')
-      console.log('Error', err)
-    })
-})
-bot.action('sealevel', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotSeaLevel.png' }, Extra.caption(''))
 })
 
 //
 // Catch all for actions we don't know how to handle
 //
 bot.action(/.+/, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Unresolved');
+  //  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Unresolved');
   return ctx.answerCbQuery(`Oh, ${ctx.match[0]}! I don't know how to respond to that`)
 })
 
