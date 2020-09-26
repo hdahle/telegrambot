@@ -66,9 +66,6 @@ bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) })
 //
 // Temperature - Global warming
 //
-//
-// Emissions
-//
 bot.hears(/(temp)|(warming)|(global warming)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/plotGlobalTemp.png' },
@@ -127,11 +124,14 @@ bot.hears(/emissi/i, (ctx) => {
   setTimeout(function () {
     ctx.reply('Other 📈 charts you might like:',
       Markup.inlineKeyboard([
-        Markup.callbackButton('By Income Group', 'oxfam'),
-        Markup.callbackButton('Norway', 'emissionsnorway'),
-        Markup.callbackButton('By Fuel Type', 'emissionsbyfueltype'),
-        Markup.callbackButton('By Region', 'emissionsbyregion'),
-        Markup.callbackButton('CO2 vs GDP', 'co2vsgdp')
+        [
+          Markup.callbackButton('By Income Group', 'oxfam'),
+          Markup.callbackButton('Norway', 'emissionsnorway'),
+          Markup.callbackButton('By Fuel Type', 'emissionsbyfueltype')
+        ], [
+          Markup.callbackButton('By Region', 'emissionsbyregion'),
+          Markup.callbackButton('CO2 vs GDP', 'co2vsgdp')
+        ]
       ]).extra()
     )
   }, 3000);
@@ -171,16 +171,19 @@ bot.hears(/electr/i, (ctx) => {
 //
 // Fossil fuels - Respond with text and button for charts
 //
-bot.hears(/fossil/i, (ctx) => {
+bot.hears(/(fossil)|(coal)|(oil)|(gas)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.reply('We have a few charts on fossil fuels, try one of these',
     Markup.inlineKeyboard([
-      Markup.callbackButton('Oil production', 'eiaoil'),
-      Markup.callbackButton('Gas production', 'eiagas'),
-      Markup.callbackButton('Coal production', 'eiacoal'),
-      Markup.callbackButton('Emissions Norway', 'emissionsnorway'),
-      Markup.callbackButton('Emissions by Fuel Type', 'emissionsbyfueltype'),
-      Markup.callbackButton('Emissions by Region', 'emissionsbyregion')
+      [
+        Markup.callbackButton('Oil production', 'eiaoil'),
+        Markup.callbackButton('Gas production', 'eiagas'),
+        Markup.callbackButton('Coal production', 'eiacoal')
+      ], [
+        Markup.callbackButton('Emissions Norway', 'emissionsnorway'),
+        Markup.callbackButton('Emissions by Fuel Type', 'emissionsbyfueltype'),
+        Markup.callbackButton('Emissions by Region', 'emissionsbyregion')
+      ]
     ]).extra()
   )
 })
@@ -262,13 +265,32 @@ function replyCo210(ctx) {
       'This chart is updated daily based on measurements from the Mauna Loa Observatory').markdown()
   )
 }
+function replyCo22000(ctx) {
+  return ctx.replyWithPhoto({ source: 'img/plotLawDome.png' },
+    Extra.caption('Atmospheric CO2 levels were quite stable for about 2000 years - until the start of the *Industrial Revolution*').markdown()
+  )
+}
+function replyCo2500K(ctx) {
+  return ctx.replyWithPhoto({ source: 'img/plotVostok.png' },
+    Extra.caption('Ice-cores drilled in Antarctica contain trapped air bubbles going back several hundred thousand years. ' +
+      'Homo Sapiens has been around for about 200.000 years. ' +
+      'Atmospheric *CO2 levels were about 180-280ppm* during this time - until the Industrial Revolution ' +
+      'when mankind started burning coal and releasing CO2 into the atmosphere').markdown()
+  )
+}
 
 //
 // CO2 - Respond with text and buttons for three images
 //
-bot.hears(/co2[ ]+10/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
-  return replyCo210(ctx);
+bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
+  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', ctx.match[1]);
+  switch (parseInt(ctx.match[1], 10)) {
+    case 10: return replyCo210(ctx); break;
+    case 2000: return replyCo22000(ctx); break;
+    case 500000: return replyCo2500K(ctx); break;
+    default:
+  }
+  return ctx.reply('I am not sure what you are asking...😕')
 });
 
 bot.hears(/co2/i, (ctx) => {
@@ -316,17 +338,10 @@ bot.action('co2last10', (ctx) => {
   return replyCo210(ctx);
 })
 bot.action('co2last2000', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotLawDome.png' },
-    Extra.caption('Atmospheric CO2 levels were quite stable for about 2000 years - until the start of the *Industrial Revolution*').markdown()
-  )
+  return replyCo22000(ctx)
 })
 bot.action('co2last5M', (ctx) => {
-  return ctx.replyWithPhoto({ source: 'img/plotVostok.png' },
-    Extra.caption('Ice-cores drilled in Antarctica contain trapped air bubbles going back several hundred thousand years. ' +
-      'Homo Sapiens has been around for about 200.000 years. ' +
-      'Atmospheric *CO2 levels were about 180-280ppm* during this time - until the Industrial Revolution ' +
-      'when mankind started burning coal and releasing CO2 into the atmosphere').markdown()
-  )
+  return replyCo2500K(ctx);
 })
 
 //
