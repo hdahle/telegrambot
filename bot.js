@@ -32,27 +32,30 @@ const Extra = require('telegraf/extra')
 const Markup = require('telegraf/markup')
 const bot = new Telegraf(apiKey);
 const fetch = require('node-fetch');
+const { count } = require('console');
 
 function startAndHelp(ctx) {
   ctx.reply('Hi ' + ctx.update.message.from.first_name + '!');
   setTimeout(function () {
-    ctx.reply('Here are some commands you can try:\n' +
-      '/start - this help\n\n' +
-      '⚰️ /corona - Worldwide and country-specific data\n' +
-      '📈 /co2 - current and historical CO2 levels\n' +
+    ctx.reply('Here are some commands you can try:\n\n' +
+      '⚰️ /corona - cases and deaths\n' +
+      '📈 /co2 - atmospheric CO2 levels\n' +
       '☀️ /renewables - solar, wind, etc\n' +
-      '🏭 /emissions - greenhouse gas emissions\n' +
-      '🛢️ /fossil - oil, gas, coal statistics\n' +
-      '⚡ /electricity - global electricity production\n' +
-      '🌊 /sealevel - global sea level rise\n' +
-      '🌡️ /temperature - global warming'
+      '🏭 /emissions - greenhouse gases\n' +
+      '🛢️ /fossil - oil, gas, coal \n' +
+      '⚡ /electricity - global production\n' +
+      '🌊 /sealevel - sea level rise\n' +
+      '🌡️ /temperature - global warming\n' +
+      '🧊 /ice - ice melting \n'
+
     )
   }, 1000)
   setTimeout(function () {
-    ctx.replyWithMarkdown('You can also just type one of the keywords above - try typing in `co2` or `fossil` and see what happens. ' +
-      'Just type `help` if you get stuck'
-    )
-  }, 2000)
+    ctx.replyWithMarkdown('Try typing in `co2` or `fossil` and see what happens. ')
+  }, 2500)
+  setTimeout(function () {
+    ctx.replyWithMarkdown('Just type `help` if you get stuck')
+  }, 5000)
 }
 
 //
@@ -60,35 +63,6 @@ function startAndHelp(ctx) {
 //
 bot.start((ctx) => { startAndHelp(ctx) });
 bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) })
-
-//
-// Experimental
-//
-bot.command('custom', ({ reply }) => {
-  return reply('Custom buttons keyboard', Markup
-    .keyboard([
-      ['🔍 Search', '😎 Popular'], // Row1 with 2 buttons
-      ['☸ Setting', '📞 Feedback'], // Row2 with 2 buttons
-      ['📢 Ads', '⭐️ Rate us', '👥 Share'], // Row3 with 3 buttons
-      ['Global Warming', 'Sea Level Rise']
-    ])
-    .oneTime()
-    .resize()
-    .extra()
-  )
-})
-bot.hears('🔍 Search', ctx => ctx.reply('Yay!'))
-bot.hears('📢 Ads', ctx => ctx.reply('Free hugs. Call now!'))
-bot.action('Search', ctx => ctx.reply('Yay!'))
-bot.action('Ads', ctx => ctx.reply('Free hugs. Call now!'))
-
-bot.command('inline', (ctx) => {
-  return ctx.reply('<b>Coke</b> or <i>Pepsi?</i>', Extra.HTML().markup((m) =>
-    m.inlineKeyboard([
-      m.callbackButton('Search', 'Search'),
-      m.callbackButton('Ads', 'Ads')
-    ])))
-})
 
 //
 // Temperature - Global warming
@@ -112,8 +86,25 @@ bot.hears(/(temp)|(warming)|(global warming)/i, (ctx) => {
 });
 bot.action('svalbard', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/plotSvalbardTemp.png' },
-    Extra.caption('Data from The Norwegian Meteorological Institute and The Norwegian Centre for Climate Services indicate that temperatures in the Arctic, as measured at Svalbard Airport (78.24 degrees North), are now at least *5°C* higher than 50-100 years ago.').markdown());
+    Extra.caption('Data from The Norwegian Meteorological Institute show that temperatures in the Arctic, as measured at Svalbard Airport (78.24 degrees North), are now at least *5°C* higher than 50-100 years ago.').markdown());
 })
+
+//
+// Temperature - Global warming
+//
+bot.hears(/ice/i, (ctx) => {
+  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  ctx.replyWithPhoto({ source: 'img/ArcticIce.png' },
+    Extra.caption('The National Snow And Ice Data Center in the US monitors sea ice in the polar regions. ' +
+      'This chart shows ice extent in the Arctic for each year since 1979. ' +
+      'In the Arctic, sea ice cover is at its lowest in September before the onset of winter. ' +
+      'July 2020 had the least amount of ice for any July month since measurements started.'
+    ).markdown()
+  );
+  setTimeout(function () {
+    ctx.replyWithMarkdown('You may also be interested in rising sea levels - try typing in *sea level*!')
+  }, 3000);
+});
 
 //
 // Renewables
@@ -243,10 +234,11 @@ bot.action('emissionsnorway', (ctx) => {
   )
 })
 
+
 //
-// Corona country
+// Corona chart country
 //
-bot.hears(/corona (.+)/i, (ctx) => {
+bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', ctx.match[1]);
   let country = ctx.match[1].toLowerCase();
   let fn = 'ch1.png';
@@ -270,6 +262,86 @@ bot.hears(/corona (.+)/i, (ctx) => {
 })
 
 
+//
+// Cornoa list countries
+//
+bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
+  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the list of countries we have data for');
+  try {
+    const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
+    const results = await response.json();
+    const data = results.data; // array of countries
+    let countries = '';
+    data.forEach(d => {
+      countries += d.country + '\n'
+    })
+    ctx.replyWithMarkdown(countries + 'Just type *covid* followed by a country in this list to get the latest information');
+  }
+  catch (err) {
+    console.log('Error hears(co2):', err)
+    ctx.reply('Ouch, something went wrong, sorry 😟')
+  }
+})
+
+bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
+  let country = ctx.match[1];
+  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', country);
+  // catch some common spellings, the name matching really should be improved
+  country = (country.toLowerCase() == "north america") ? "Northern America" : country;
+  country = (country.toLowerCase() == "usa") ? "US" : country;
+  ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the latest data from Johns Hopkins University');
+
+  setTimeout(async () => {
+    try {
+      const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
+      const results = await response.json();
+      // now try to find country in the data array
+      const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
+      if (c === undefined) {
+        ctx.reply('Sorry, no data for ' + country);
+        return;
+      }
+      const trend = (c.thisWeek > c.prevWeek) ? ' 📈 ' : ' 📉 '
+      ctx.replyWithMarkdown(c.country
+        + ' total deaths: ' + c.total + ' 💀'
+        + '\nLast seven days: ' + c.thisWeek + trend
+        + '(seven days before: ' + c.prevWeek + ')'
+      );
+    }
+    catch (err) {
+      console.log('Error hears(co2):', err);
+      ctx.reply('Unable to find that, sorry 😟')
+    }
+  }, 500);
+
+  setTimeout(async () => {
+    try {
+      const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
+      const results = await response.json();
+      // now try to find country in the data array
+      const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
+      if (c === undefined) {
+        ctx.reply('Sorry, no data for ' + country);
+        return;
+      }
+      const trend = (c.thisWeek > c.prevWeek) ? ' 📈 ' : ' 📉 '
+      console.log(c);
+      ctx.replyWithMarkdown(c.country
+        + ' total cases: ' + c.total + ' 😷'
+        + '\nLast seven days: ' + c.thisWeek + trend
+        + '(seven days before: ' + c.prevWeek + ')'
+        + '\nCases per 100.000: ' + Math.trunc(c.thisWeek / c.population) / 10
+      );
+    }
+    catch (err) {
+      console.log('Error hears(co2):', err)
+      ctx.reply('Unable to find that, sorry 😟')
+    }
+  }, 2000);
+})
+
+
 bot.hears(/(corona)|(covid)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/ch1.png' },
@@ -288,7 +360,7 @@ bot.hears(/(corona)|(covid)/i, (ctx) => {
 })
 bot.action('corona-deaths-top-20', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
-    Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day').markdown())
+    Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
 })
 
 function replyCo210(ctx) {
@@ -340,7 +412,7 @@ bot.hears(/co2/i, async (ctx) => {
     const { date, value, change1yr, change10yr } = results.data.pop();
     const days = Math.trunc(moment.duration(moment().diff(moment(date))).as('days'));
     const caption = 'The atmospheric CO2 level is *' + Math.trunc(value) + 'ppm* measured '
-      + ((days == 1) ? 'yesterday\n' : days.toString()) + ' days ago\n'
+      + ((days == 1) ? 'yesterday\n' : (days.toString()) + ' days ago\n')
       + 'This is ' + change1yr + '% higher than a year ago, and '
       + change10yr + '% higher than 10 years ago 🤔\n';
     ctx.replyWithMarkdown(caption)
@@ -380,8 +452,8 @@ bot.hears(/sea[ ]*l/i, async (ctx) => {
   console.log('User:', firstname, 'Text:', ctx.update.message.text);
   ctx.reply(firstname + ', please wait while I get the latest sea level measurements from CSIRO in Australia');
   try {
-    const response = fetch("https://api.dashboard.eco/CSIRO_Alt");
-    const results = response.json();
+    const response = await fetch("https://api.dashboard.eco/CSIRO_Alt");
+    const results = await response.json();
     const latest = results.data.pop();
     const first = results.data.shift();
     const days = moment.duration(moment(latest.t).diff(moment(first.t))).as('days');
