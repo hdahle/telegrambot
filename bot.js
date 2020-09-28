@@ -92,7 +92,7 @@ bot.action('svalbard', (ctx) => {
 //
 // Temperature - Global warming
 //
-bot.hears(/ice/i, (ctx) => {
+bot.hears(/^ice/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/ArcticIce.png' },
     Extra.caption('The National Snow And Ice Data Center in the US monitors sea ice in the polar regions. ' +
@@ -234,6 +234,13 @@ bot.action('emissionsnorway', (ctx) => {
   )
 })
 
+//
+// Corona beer
+//
+bot.hears(/corona beer/i, (ctx) => {
+  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  ctx.replyWithPhoto({ source: 'img/' + 'corona-beer.jpg' });
+})
 
 //
 // Corona chart country
@@ -260,7 +267,6 @@ bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
     Extra.caption('⚰️ Number of deaths in ' + country)
   );
 })
-
 
 //
 // Cornoa list countries
@@ -304,7 +310,7 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
       }
       const trend = (c.thisWeek > c.prevWeek) ? ' 📈 ' : ' 📉 '
       ctx.replyWithMarkdown(c.country
-        + ' total deaths: ' + c.total + ' 💀'
+        + ' total deaths: ' + c.total + ' 💀  '
         + '\nLast seven days: ' + c.thisWeek + trend
         + '(seven days before: ' + c.prevWeek + ')'
       );
@@ -326,7 +332,7 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
         return;
       }
       const trend = (c.thisWeek > c.prevWeek) ? ' 📈 ' : ' 📉 '
-      console.log(c);
+      //console.log(c);
       ctx.replyWithMarkdown(c.country
         + ' total cases: ' + c.total + ' 😷'
         + '\nLast seven days: ' + c.thisWeek + trend
