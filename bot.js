@@ -32,7 +32,7 @@ const Extra = require('telegraf/extra')
 const Markup = require('telegraf/markup')
 const bot = new Telegraf(apiKey);
 const fetch = require('node-fetch');
-const { count } = require('console');
+//const { count } = require('console');
 
 function startAndHelp(ctx) {
   ctx.reply('Hi ' + ctx.update.message.from.first_name + '!');
@@ -90,7 +90,7 @@ bot.action('svalbard', (ctx) => {
 })
 
 //
-// Temperature - Global warming
+// Ice extent
 //
 bot.hears(/^ice/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
@@ -269,7 +269,7 @@ bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
 })
 
 //
-// Cornoa list countries
+// Corona list - respond with list of countries we havd data for
 //
 bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
@@ -282,7 +282,8 @@ bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
     data.forEach(d => {
       countries += d.country + '\n'
     })
-    ctx.replyWithMarkdown(countries + 'Just type *covid* followed by a country in this list to get the latest information');
+    ctx.reply(countries);
+    ctx.replyWithMarkdown('Just type *corona* followed by a country in this list to get the latest information');
   }
   catch (err) {
     console.log('Error hears(co2):', err)
@@ -290,14 +291,19 @@ bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
   }
 })
 
+//
+// Corona country - respond with deaths and cases
+//
 bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
   let country = ctx.match[1];
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', country);
   // catch some common spellings, the name matching really should be improved
   country = (country.toLowerCase() == "north america") ? "Northern America" : country;
   country = (country.toLowerCase() == "usa") ? "US" : country;
-  ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the latest data from Johns Hopkins University');
-
+  // occasionally let the user know we're getting data from JHU
+  if (Math.random() > 0.8) {
+    ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the latest data from Johns Hopkins University');
+  }
   setTimeout(async () => {
     try {
       const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
@@ -305,49 +311,51 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
       // now try to find country in the data array
       const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
       if (c === undefined) {
-        ctx.reply('Sorry, no data for ' + country);
+        ctx.replyWithMarkdown('Sorry, no data for ' + country + '\nType *corona list* for a list of countries');
         return;
       }
-      const trend = (c.thisWeek > c.prevWeek) ? ' 📈 ' : ' 📉 '
+      const trend = (c.thisWeek > c.prevWeek) ? ' 📈 (up ' : ' 📉 (down '
       ctx.replyWithMarkdown(c.country
         + ' total deaths: ' + c.total + ' 💀  '
         + '\nLast seven days: ' + c.thisWeek + trend
-        + '(seven days before: ' + c.prevWeek + ')'
+        + 'from: ' + c.prevWeek + ')'
+        + '\nTotal deaths per 100.000: ' + Math.trunc(c.total / c.population) / 10
       );
     }
     catch (err) {
-      console.log('Error hears(co2):', err);
+      console.log('Error hears(corona country):', err);
       ctx.reply('Unable to find that, sorry 😟')
     }
-  }, 500);
-
-  setTimeout(async () => {
-    try {
-      const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
-      const results = await response.json();
-      // now try to find country in the data array
-      const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
-      if (c === undefined) {
-        ctx.reply('Sorry, no data for ' + country);
-        return;
+    setTimeout(async () => {
+      try {
+        const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
+        const results = await response.json();
+        // now try to find country in the data array
+        const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
+        if (c === undefined) {
+          ctx.reply('Sorry, no data for ' + country);
+          return;
+        }
+        const trend = (c.thisWeek > c.prevWeek) ? ' 📈 (up ' : ' 📉 (down '
+        //console.log(c);
+        ctx.replyWithMarkdown(c.country
+          + ' total cases: ' + c.total + ' 😷'
+          + '\nLast seven days: ' + c.thisWeek + trend
+          + 'from: ' + c.prevWeek + ')'
+          + '\nNew cases per 100.000: ' + Math.trunc(c.thisWeek / c.population) / 10
+        );
       }
-      const trend = (c.thisWeek > c.prevWeek) ? ' 📈 ' : ' 📉 '
-      //console.log(c);
-      ctx.replyWithMarkdown(c.country
-        + ' total cases: ' + c.total + ' 😷'
-        + '\nLast seven days: ' + c.thisWeek + trend
-        + '(seven days before: ' + c.prevWeek + ')'
-        + '\nCases per 100.000: ' + Math.trunc(c.thisWeek / c.population) / 10
-      );
-    }
-    catch (err) {
-      console.log('Error hears(co2):', err)
-      ctx.reply('Unable to find that, sorry 😟')
-    }
-  }, 2000);
+      catch (err) {
+        console.log('Error hears(corona country):', err)
+        ctx.reply('Unable to find that, sorry 😟')
+      }
+    }, 1000);
+  }, 500);
 })
 
-
+//
+// Corona - respond with World chart
+//
 bot.hears(/(corona)|(covid)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/ch1.png' },
@@ -361,7 +369,7 @@ bot.hears(/(corona)|(covid)/i, (ctx) => {
     )
   }, 2000);
   setTimeout(() => {
-    ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona us` ... and so on')
+    ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona brazil` ... and so on')
   }, 4000);
 })
 bot.action('corona-deaths-top-20', (ctx) => {
@@ -406,7 +414,7 @@ bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
 });
 
 //
-// CO2
+// CO2 - respond with current atmospheric CO2 level from Maunaloa
 //
 bot.hears(/co2/i, async (ctx) => {
   let firstname = ctx.update.message.from.first_name;
