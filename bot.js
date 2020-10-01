@@ -34,6 +34,13 @@ const bot = new Telegraf(apiKey);
 const fetch = require('node-fetch');
 //const { count } = require('console');
 
+
+bot.catch((err, ctx) => {
+  console.log('Bot Error ' + ctx.updateType
+    + '\n  Error code:' + err.code
+    + '\n  Error descr:' + err.description)
+});
+
 function startAndHelp(ctx) {
   ctx.reply('Hi ' + ctx.update.message.from.first_name + '!');
   setTimeout(function () {
@@ -47,22 +54,21 @@ function startAndHelp(ctx) {
       '🌊 /sealevel - sea level rise\n' +
       '🌡️ /temperature - global warming\n' +
       '🧊 /ice - ice melting \n'
-
     )
   }, 1000)
   setTimeout(function () {
     ctx.replyWithMarkdown('Try typing in `co2` or `fossil` and see what happens. ')
-  }, 2500)
+  }, 2000)
   setTimeout(function () {
     ctx.replyWithMarkdown('Just type `help` if you get stuck')
-  }, 5000)
+  }, 3000)
 }
 
 //
 // Start - welcome message
 //
 bot.start((ctx) => { startAndHelp(ctx) });
-bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) })
+bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) });
 
 //
 // Temperature - Global warming
@@ -173,9 +179,7 @@ bot.action('emissionsbyregion', (ctx) => {
 //
 bot.hears(/electr/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
-  ctx.replyWithPhoto({ source: 'img/plotEiaEl.png' },
-    Extra.caption('The growth in electricity production is mainly in China. Figures are in 1000 TWh (terawatt hours)')
-  )
+
   setTimeout(function () {
     ctx.replyWithMarkdown('We also have some charts on the *cost* of electricity production, try clicking one of these:',
       Markup.inlineKeyboard([
@@ -183,7 +187,10 @@ bot.hears(/electr/i, (ctx) => {
         Markup.callbackButton('Cost of electricity generation', 'eialcoe'),
       ]).extra()
     )
-  }, 3000)
+  }, 3000);
+  return ctx.replyWithPhoto({ source: 'img/plotEiaEl.png' },
+    Extra.caption('The growth in electricity production is mainly in China. Figures are in 1000 TWh (terawatt hours)')
+  );
 })
 
 //
@@ -246,8 +253,8 @@ bot.hears(/corona beer/i, (ctx) => {
 // Corona chart country
 //
 bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', ctx.match[1]);
   let country = ctx.match[1].toLowerCase();
+  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', country);
   let fn = 'ch1.png';
   switch (country) {
     case 'world': break;
@@ -277,11 +284,7 @@ bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
   try {
     const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
     const results = await response.json();
-    const data = results.data; // array of countries
-    let countries = '';
-    data.forEach(d => {
-      countries += d.country + '\n'
-    })
+    const countries = results.data.map(d => d.country).join('\n');
     ctx.reply(countries);
     ctx.replyWithMarkdown('Just type *corona* followed by a country in this list to get the latest information');
   }
@@ -349,8 +352,8 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
         console.log('Error hears(corona country):', err)
         ctx.reply('Unable to find that, sorry 😟')
       }
-    }, 1000);
-  }, 500);
+    }, 250);
+  }, 250);
 })
 
 //
@@ -358,19 +361,19 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
 //
 bot.hears(/(corona)|(covid)/i, (ctx) => {
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
-  ctx.replyWithPhoto({ source: 'img/ch1.png' },
-    Extra.caption('⚰️ Number of deaths per day, worldwide')
-  );
   setTimeout(() => {
     ctx.reply('Other related data:',
       Markup.inlineKeyboard([
         Markup.callbackButton('⚰️ Deaths, Top 20 Countries', 'corona-deaths-top-20')
       ]).extra()
     )
-  }, 2000);
+  }, 1000);
   setTimeout(() => {
     ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona brazil` ... and so on')
-  }, 4000);
+  }, 2000);
+  return ctx.replyWithPhoto({ source: 'img/ch1.png' },
+    Extra.caption('⚰️ Number of deaths per day, worldwide')
+  );
 })
 bot.action('corona-deaths-top-20', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
@@ -417,7 +420,7 @@ bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
 // CO2 - respond with current atmospheric CO2 level from Maunaloa
 //
 bot.hears(/co2/i, async (ctx) => {
-  let firstname = ctx.update.message.from.first_name;
+  const firstname = ctx.update.message.from.first_name;
   console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
   ctx.reply(firstname + ', please wait while we get the latest CO2 measurements from NOAA Earth Systems Research Lab in Hawaii');
   try {
@@ -444,7 +447,7 @@ bot.hears(/co2/i, async (ctx) => {
         Markup.callbackButton('📈 500.000 years', 'co2last5M')
       ]).extra()
     )
-  }, 3000);
+  }, 2000);
 })
 
 
@@ -462,7 +465,7 @@ bot.action('co2last5M', (ctx) => {
 // Sealevel - Respond with text and button for chart
 //
 bot.hears(/sea[ ]*l/i, async (ctx) => {
-  let firstname = ctx.update.message.from.first_name;
+  const firstname = ctx.update.message.from.first_name;
   console.log('User:', firstname, 'Text:', ctx.update.message.text);
   ctx.reply(firstname + ', please wait while I get the latest sea level measurements from CSIRO in Australia');
   try {
