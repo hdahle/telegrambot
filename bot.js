@@ -41,7 +41,12 @@ bot.catch((err, ctx) => {
     + '\n  Error descr:' + err.description)
 });
 
+function logMessage(user, msg) {
+  console.log(moment().format("YY-MM-DD hh:mm"), user, msg)
+}
+
 function startAndHelp(ctx) {
+  logMessage(ctx.update.message.from.username, 'Start');
   ctx.reply('Hi ' + ctx.update.message.from.first_name + '!');
   setTimeout(function () {
     ctx.reply('Here are some commands you can try:\n\n' +
@@ -74,7 +79,7 @@ bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) });
 // Temperature - Global warming
 //
 bot.hears(/(temp)|(warming)|(global warming)/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/plotGlobalTemp.png' },
     Extra.caption('This chart includes three datasets, all indicating global warming:' +
       '*NASA GISTEMPv4* - shows *1 degree C* increase since 1951-1980\n' +
@@ -99,7 +104,7 @@ bot.action('svalbard', (ctx) => {
 // Ice extent
 //
 bot.hears(/^ice/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/ArcticIce.png' },
     Extra.caption('The National Snow And Ice Data Center in the US monitors sea ice in the polar regions. ' +
       'This chart shows ice extent in the Arctic for each year since 1979. ' +
@@ -116,7 +121,7 @@ bot.hears(/^ice/i, (ctx) => {
 // Renewables
 //
 bot.hears(/renewab/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.reply('Available charts 📈 on renewable energy:',
     Markup.inlineKeyboard([
       Markup.callbackButton('Cost of renewable power', 'irena'),
@@ -142,7 +147,7 @@ bot.action('eialcoe', (ctx) => {
 // Emissions
 //
 bot.hears(/emissi/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.replyWithMarkdown('The annual greenhouse gas emissions are now above *50 billion tons* CO2 equivalents per year. That is equivalent to almost 7 tons of CO2 per person on the planet');
   ctx.replyWithPhoto({ source: 'img/wri-emissions-2016.png' })
   setTimeout(() => {
@@ -178,8 +183,7 @@ bot.action('emissionsbyregion', (ctx) => {
 // Electricity
 //
 bot.hears(/electr/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
-
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   setTimeout(function () {
     ctx.replyWithMarkdown('We also have some charts on the *cost* of electricity production, try clicking one of these:',
       Markup.inlineKeyboard([
@@ -197,7 +201,7 @@ bot.hears(/electr/i, (ctx) => {
 // Fossil fuels - Respond with text and button for charts
 //
 bot.hears(/(fossil)|(coal)|(oil)|(gas)/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.reply('We have a few charts on fossil fuels, try one of these',
     Markup.inlineKeyboard([
       [
@@ -213,28 +217,34 @@ bot.hears(/(fossil)|(coal)|(oil)|(gas)/i, (ctx) => {
   )
 })
 bot.action('eiaoil', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'eia oil')
   return ctx.replyWithPhoto({ source: 'img/plotEiaOil.png' },
     Extra.caption('Global oil production is about *100 million barrels per day*, and it is increasing. Most of the increase is due to the sharp growth in US shale oil').markdown()
   )
 })
 bot.action('eiagas', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'eia gas')
   return ctx.replyWithPhoto({ source: 'img/plotEiaGas.png' },
     Extra.caption('This chart shows annual production in billion cubic metres.').markdown()
   )
 })
 bot.action('eiacoal', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'eia coal')
   return ctx.replyWithPhoto({ source: 'img/plotEiaCoal.png' },
     Extra.caption('This chart shows annual production in million metric tons. *China represents 45%* of total coal production').markdown()
   )
 })
 bot.action('eiael', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'eia el')
   return ctx.replyWithPhoto({ source: 'img/plotEiaEl.png' })
 })
 bot.action('emissionsbyfueltype', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'emissions by fuel type')
   return ctx.replyWithPhoto({ source: 'img/plotEmissionsByFuelType.png' },
     Extra.caption('Coal is still the biggest source of CO2 emissions, but gas is growing faster'))
 })
 bot.action('emissionsnorway', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'emissions norway')
   return ctx.replyWithPhoto(
     { source: 'img/plotEmissionsNorway.png' },
     Extra.caption('Annual GHG emissions in Norway since 1990')
@@ -245,7 +255,7 @@ bot.action('emissionsnorway', (ctx) => {
 // Corona beer
 //
 bot.hears(/corona beer/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/' + 'corona-beer.jpg' });
 })
 
@@ -254,7 +264,7 @@ bot.hears(/corona beer/i, (ctx) => {
 //
 bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
   let country = ctx.match[1].toLowerCase();
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', country);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   let fn = 'ch1.png';
   switch (country) {
     case 'world': break;
@@ -279,7 +289,7 @@ bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
 // Corona list - respond with list of countries we havd data for
 //
 bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the list of countries we have data for');
   try {
     const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
@@ -299,7 +309,7 @@ bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
 //
 bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
   let country = ctx.match[1];
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', country);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   // catch some common spellings, the name matching really should be improved
   country = (country.toLowerCase() == "north america") ? "Northern America" : country;
   country = (country.toLowerCase() == "usa") ? "US" : country;
@@ -360,7 +370,7 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
 // Corona - respond with World chart
 //
 bot.hears(/(corona)|(covid)/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   setTimeout(() => {
     ctx.reply('Other related data:',
       Markup.inlineKeyboard([
@@ -376,6 +386,7 @@ bot.hears(/(corona)|(covid)/i, (ctx) => {
   );
 })
 bot.action('corona-deaths-top-20', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'corona top20')
   return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
     Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
 })
@@ -406,7 +417,7 @@ function replyCo2500K(ctx) {
 // CO2 YEARS - Respond with text and buttons for three images
 //
 bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Match:', ctx.match[1]);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   switch (parseInt(ctx.match[1], 10)) {
     case 10: return replyCo210(ctx); break;
     case 2000: return replyCo22000(ctx); break;
@@ -421,7 +432,7 @@ bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
 //
 bot.hears(/co2/i, async (ctx) => {
   const firstname = ctx.update.message.from.first_name;
-  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.reply(firstname + ', please wait while we get the latest CO2 measurements from NOAA Earth Systems Research Lab in Hawaii');
   try {
     const response = await fetch("https://api.dashboard.eco/maunaloaco2-daily");
@@ -452,12 +463,15 @@ bot.hears(/co2/i, async (ctx) => {
 
 
 bot.action('co2last10', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'co2last10')
   return replyCo210(ctx);
 })
 bot.action('co2last2000', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'co2last2000')
   return replyCo22000(ctx)
 })
 bot.action('co2last5M', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'co2last5M')
   return replyCo2500K(ctx);
 })
 
@@ -466,7 +480,7 @@ bot.action('co2last5M', (ctx) => {
 //
 bot.hears(/sea[ ]*l/i, async (ctx) => {
   const firstname = ctx.update.message.from.first_name;
-  console.log('User:', firstname, 'Text:', ctx.update.message.text);
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.reply(firstname + ', please wait while I get the latest sea level measurements from CSIRO in Australia');
   try {
     const response = await fetch("https://api.dashboard.eco/CSIRO_Alt");
@@ -491,7 +505,7 @@ bot.hears(/sea[ ]*l/i, async (ctx) => {
 // Catch all for actions we don't know how to handle
 //
 bot.action(/.+/, (ctx) => {
-  //  console.log('User:', ctx.update.message.from.first_name, 'Text:', ctx.update.message.text, 'Unresolved');
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
   return ctx.answerCbQuery(`Oh, ${ctx.match[0]}! I don't know how to respond to that`)
 })
 
