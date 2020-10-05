@@ -296,7 +296,9 @@ bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
     const results = await response.json();
     const countries = results.data.map(d => d.country).join('\n');
     ctx.reply(countries);
-    ctx.replyWithMarkdown('Just type *corona* followed by a country in this list to get the latest information');
+    setTimeout(() => {
+      ctx.replyWithMarkdown('Just type *corona* followed by a country in this list to get the latest information');
+    }, 1000);
   }
   catch (err) {
     console.log('Error hears(co2):', err)
