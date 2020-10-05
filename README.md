@@ -15,6 +15,7 @@ pm2 start bot.js -- --apikey `cat apikey.txt`
 ````
 ## Images/Charts displayed by the bot
 All the charts are from my `futureplanet.eco` site which uses chart.js to create charts. In order to save charts as PNGs, I use Puppeteer to scrape the site and save the images to the IMG folder. The code for scraping is in my `headless` repo.
+https://github.com/hdahle/headless
 
 ## The Telegraf bot framework
 https://github.com/telegraf/telegraf
