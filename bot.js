@@ -41,6 +41,14 @@ bot.catch((err, ctx) => {
     + '\n  Error descr:' + err.description)
 });
 
+function titleCase(str) {
+  var splitStr = str.toLowerCase().split(' ');
+  for (var i = 0; i < splitStr.length; i++) {
+    splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
+  }
+  return splitStr.join(' ');
+}
+
 function logMessage(user, msg) {
   console.log(moment().format("YY-MM-DD hh:mm"), user, msg)
 }
@@ -252,17 +260,18 @@ bot.action('emissionsnorway', (ctx) => {
 })
 
 //
-// Corona beer
+// CORONA BEER
 //
 bot.hears(/corona beer/i, (ctx) => {
+  console.log(ctx.from)
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/' + 'corona-beer.jpg' });
 })
 
 //
-// Corona chart country
+// CORONA CHART country
 //
-bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
+bot.hears(/co[rv][a-z]+chart (.+)/i, (ctx) => {
   let country = ctx.match[1].toLowerCase();
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
   let fn = 'ch1.png';
@@ -286,9 +295,9 @@ bot.hears(/co[rv][a-z]+ chart (.+)/i, (ctx) => {
 })
 
 //
-// Corona list - respond with list of countries we havd data for
+// CORONA LIST - respond with list of countries we have data for
 //
-bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
   ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the list of countries we have data for');
   try {
@@ -306,10 +315,103 @@ bot.hears(/co[rv][a-z]+ list/i, async (ctx) => {
   }
 })
 
+
 //
-// Corona country - respond with deaths and cases
+// CORONA country REGION region
 //
-bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+(.+)[ ]+region[ ]+(.+)$/i, async (ctx) => {
+  let country = ctx.match[1].toLowerCase();
+  if (country === "uk") country = "united kingdom";
+  let region = ctx.match[2].toLowerCase();
+
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  //ctx.reply(ctx.update.message.from.first_name + ', getting data for ' + country + ' region ' + region);
+  try {
+    const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
+    const results = await response.json();
+    const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
+    if (c === undefined) {
+      ctx.reply('Sorry, no data for ' + country);
+      return;
+    }
+    // We found the country, it is in 'c'. Now get the regions
+    const reg = c.region.find(r => r.name.toLowerCase().includes(region.toLowerCase()))
+    if (reg) {
+      let date = reg.data[reg.data.length - 1].t;
+      let value = reg.data[reg.data.length - 1].v;
+      let pdate = reg.data[reg.data.length - 2].t;
+      let pvalue = reg.data[reg.data.length - 2].v;
+      let change = (value > pvalue) ? ' 📈 (up from ' : ' 📉(down from ';
+      ctx.replyWithMarkdown(titleCase(reg.name + ', ' + c.country) + '\n'
+        + 'For 14 days ending ' + moment(date, 'YYYYWW').add(6, 'd').format('MMM D') + '\n'
+        + 'New cases per 100.000: *' + value + '*' + change + pvalue + ')'
+      );
+    } else {
+      ctx.reply('Sorry, unable to find that')
+    }
+  }
+  catch (err) {
+    console.log('Error hears(CORONA country REGION region):', err)
+    ctx.reply('Ouch, something went wrong, sorry 😟')
+  }
+})
+
+//
+// CORONA country REGION
+//
+bot.hears(/co[rv][a-z]+[ ]+(.*)[ ]+region/i, async (ctx) => {
+  let country = ctx.match[1].toLowerCase();
+  if (country === "uk") country = "united kingdom";
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  try {
+    const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
+    const results = await response.json();
+    const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
+    if (c === undefined) {
+      ctx.reply('Sorry, no data for ' + country);
+      return;
+    }
+    // We found the country, it is in 'c'. Now get the regions
+    const regions = c.region.map(r => r.name).join('\n')
+
+    ctx.reply(regions);
+    setTimeout(() => {
+      ctx.replyWithMarkdown('Example:\n*corona* ' + titleCase(c.country) + ' *region* ' + titleCase(c.region[0].name));
+    }, 1000);
+  }
+  catch (err) {
+    console.log('Error hears(corona region country):', err)
+    ctx.reply('Ouch, something went wrong, sorry 😟')
+  }
+})
+
+
+
+//
+// CORONA REGION
+//
+bot.hears(/co[rv][a-z]+[ ]+region/i, async (ctx) => {
+  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  ctx.reply(ctx.update.message.from.first_name + ', getting list of countries we have regional data for...');
+  try {
+    const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
+    const results = await response.json();
+    const countries = results.data.map(d => d.country).join('\n');
+    ctx.reply(countries);
+    setTimeout(() => {
+      ctx.replyWithMarkdown('Try something like this:\n*corona* ' + results.data[0].country + ' *region*');
+    }, 1000);
+  }
+  catch (err) {
+    console.log('Error hears(corona region):', err)
+    ctx.reply('Ouch, something went wrong, sorry 😟')
+  }
+})
+
+//
+// CORONA COUNTRY - respond with deaths and cases
+//
+bot.hears(/co[rv][a-z]+[ ]+(.+)/i, async (ctx) => {
   let country = ctx.match[1];
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
   // catch some common spellings, the name matching really should be improved
@@ -324,17 +426,18 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
       const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
       const results = await response.json();
       // now try to find country in the data array
-      const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
+      //const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
+      const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
       if (c === undefined) {
         ctx.replyWithMarkdown('Sorry, no data for ' + country + '\nType *corona list* for a list of countries');
         return;
       }
-      const trend = (c.thisWeek > c.prevWeek) ? ' 📈 (up ' : ' 📉 (down '
+      const trend = (c.this14 > c.prev14) ? ' 📈 (up from ' : ' 📉 (down from '
       ctx.replyWithMarkdown(c.country
         + ' total deaths: ' + c.total + ' 💀  '
-        + '\nLast seven days: ' + c.thisWeek + trend
-        + 'from: ' + c.prevWeek + ')'
-        + '\nTotal deaths per 100.000: ' + Math.trunc(c.total / c.population) / 10
+        + '\nLast 14 days: ' + c.this14 + trend
+        + c.prev14 + ')'
+        + '\nTotal deaths per 100.000: *' + Math.trunc(c.total / c.population) / 10 + '*'
       );
     }
     catch (err) {
@@ -346,18 +449,19 @@ bot.hears(/co[rv][a-z]+ (.+)/i, async (ctx) => {
         const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
         const results = await response.json();
         // now try to find country in the data array
-        const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
+        const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
         if (c === undefined) {
           ctx.reply('Sorry, no data for ' + country);
           return;
         }
-        const trend = (c.thisWeek > c.prevWeek) ? ' 📈 (up ' : ' 📉 (down '
+        const trend = (c.this14 > c.prev14) ? ' 📈 (up from ' : ' 📉 (down from '
         //console.log(c);
         ctx.replyWithMarkdown(c.country
           + ' total cases: ' + c.total + ' 😷'
-          + '\nLast seven days: ' + c.thisWeek + trend
-          + 'from: ' + c.prevWeek + ')'
-          + '\nNew cases per 100.000: ' + Math.trunc(c.thisWeek / c.population) / 10
+          + '\nLast 14 days: ' + c.this14 + trend
+          + c.prev14 + ')'
+          + '\nNew cases per 100.000: *' + Math.trunc(c.this14 / c.population / 10) + '*'
+          + trend + Math.trunc(c.prev14 / c.population / 10) + ')'
         );
       }
       catch (err) {
