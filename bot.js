@@ -271,7 +271,7 @@ bot.hears(/corona beer/i, (ctx) => {
 //
 // CORONA CHART country
 //
-bot.hears(/co[rv][a-z]+chart (.+)/i, (ctx) => {
+bot.hears(/co[rv][a-z]+chart ([a-zA-Z][a-zA-Z\' \-]+)/i, (ctx) => {
   let country = ctx.match[1].toLowerCase();
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
   let fn = 'ch1.png';
@@ -319,7 +319,7 @@ bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
 //
 // CORONA country REGION region
 //
-bot.hears(/co[rv][a-z]+[ ]+(.+)[ ]+region[ ]+(.+)$/i, async (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+region[ ]+([a-zA-Z][a-zA-Z\' \-]+)$/i, async (ctx) => {
   let country = ctx.match[1].toLowerCase();
   if (country === "uk") country = "united kingdom";
   let region = ctx.match[2].toLowerCase();
@@ -359,7 +359,7 @@ bot.hears(/co[rv][a-z]+[ ]+(.+)[ ]+region[ ]+(.+)$/i, async (ctx) => {
 //
 // CORONA country REGION
 //
-bot.hears(/co[rv][a-z]+[ ]+(.*)[ ]+region/i, async (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+region/i, async (ctx) => {
   let country = ctx.match[1].toLowerCase();
   if (country === "uk") country = "united kingdom";
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
@@ -411,7 +411,7 @@ bot.hears(/co[rv][a-z]+[ ]+region/i, async (ctx) => {
 //
 // CORONA COUNTRY - respond with deaths and cases
 //
-bot.hears(/co[rv][a-z]+[ ]+(.+)/i, async (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
   let country = ctx.match[1];
   logMessage(ctx.update.message.from.username, ctx.update.message.text);
   // catch some common spellings, the name matching really should be improved
