@@ -54,7 +54,7 @@ function logMessage(user, msg) {
 }
 
 function startAndHelp(ctx) {
-  logMessage(ctx.update.message.from.username, 'Start');
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, 'Start');
   ctx.reply('Hi ' + ctx.update.message.from.first_name + '!');
   setTimeout(function () {
     ctx.reply('Here are some commands you can try:\n\n' +
@@ -87,7 +87,7 @@ bot.hears(/(start)|(help)/i, (ctx) => { startAndHelp(ctx) });
 // Temperature - Global warming
 //
 bot.hears(/(temp)|(warming)|(global warming)/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/plotGlobalTemp.png' },
     Extra.caption('This chart includes three datasets, all indicating global warming:' +
       '*NASA GISTEMPv4* - shows *1 degree C* increase since 1951-1980\n' +
@@ -112,7 +112,7 @@ bot.action('svalbard', (ctx) => {
 // Ice extent
 //
 bot.hears(/^ice/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/ArcticIce.png' },
     Extra.caption('The National Snow And Ice Data Center in the US monitors sea ice in the polar regions. ' +
       'This chart shows ice extent in the Arctic for each year since 1979. ' +
@@ -129,7 +129,7 @@ bot.hears(/^ice/i, (ctx) => {
 // Renewables
 //
 bot.hears(/renewab/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply('Available charts 📈 on renewable energy:',
     Markup.inlineKeyboard([
       Markup.callbackButton('Cost of renewable power', 'irena'),
@@ -155,7 +155,7 @@ bot.action('eialcoe', (ctx) => {
 // Emissions
 //
 bot.hears(/emissi/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.replyWithMarkdown('The annual greenhouse gas emissions are now above *50 billion tons* CO2 equivalents per year. That is equivalent to almost 7 tons of CO2 per person on the planet');
   ctx.replyWithPhoto({ source: 'img/wri-emissions-2016.png' })
   setTimeout(() => {
@@ -191,7 +191,7 @@ bot.action('emissionsbyregion', (ctx) => {
 // Electricity
 //
 bot.hears(/electr/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   setTimeout(function () {
     ctx.replyWithMarkdown('We also have some charts on the *cost* of electricity production, try clicking one of these:',
       Markup.inlineKeyboard([
@@ -209,7 +209,7 @@ bot.hears(/electr/i, (ctx) => {
 // Fossil fuels - Respond with text and button for charts
 //
 bot.hears(/(fossil)|(coal)|(oil)|(gas)/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply('We have a few charts on fossil fuels, try one of these',
     Markup.inlineKeyboard([
       [
@@ -264,16 +264,16 @@ bot.action('emissionsnorway', (ctx) => {
 //
 bot.hears(/corona beer/i, (ctx) => {
   console.log(ctx.from)
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.replyWithPhoto({ source: 'img/' + 'corona-beer.jpg' });
 })
 
 //
 // CORONA CHART country
 //
-bot.hears(/co[rv][a-z]+chart ([a-zA-Z][a-zA-Z\' \-]+)/i, (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+chart[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, (ctx) => {
   let country = ctx.match[1].toLowerCase();
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   let fn = 'ch1.png';
   switch (country) {
     case 'world': break;
@@ -298,7 +298,7 @@ bot.hears(/co[rv][a-z]+chart ([a-zA-Z][a-zA-Z\' \-]+)/i, (ctx) => {
 // CORONA LIST - respond with list of countries we have data for
 //
 bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the list of countries we have data for');
   try {
     const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
@@ -315,83 +315,56 @@ bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
   }
 })
 
-
-//
-// CORONA country REGION region
-//
-bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+region[ ]+([a-zA-Z][a-zA-Z\' \-]+)$/i, async (ctx) => {
-  let country = ctx.match[1].toLowerCase();
-  if (country === "uk") country = "united kingdom";
-  let region = ctx.match[2].toLowerCase();
-
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
-  //ctx.reply(ctx.update.message.from.first_name + ', getting data for ' + country + ' region ' + region);
-  try {
-    const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
-    const results = await response.json();
-    const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
-    if (c === undefined) {
-      ctx.reply('Sorry, no data for ' + country);
-      return;
-    }
-    // We found the country, it is in 'c'. Now get the regions
-    const reg = c.region.find(r => r.name.toLowerCase().includes(region.toLowerCase()))
-    if (reg) {
-      let date = reg.data[reg.data.length - 1].t;
-      let value = reg.data[reg.data.length - 1].v;
-      let pdate = reg.data[reg.data.length - 2].t;
-      let pvalue = reg.data[reg.data.length - 2].v;
-      let change = (value > pvalue) ? ' 📈 (up from ' : ' 📉(down from ';
-      ctx.replyWithMarkdown(titleCase(reg.name + ', ' + c.country) + '\n'
-        + 'For 14 days ending ' + moment(date, 'YYYYWW').add(6, 'd').format('MMM D') + '\n'
-        + 'New cases per 100.000: *' + value + '*' + change + pvalue + ')'
-      );
-    } else {
-      ctx.reply('Sorry, unable to find that')
-    }
-  }
-  catch (err) {
-    console.log('Error hears(CORONA country REGION region):', err)
-    ctx.reply('Ouch, something went wrong, sorry 😟')
-  }
-})
-
 //
 // CORONA country REGION
 //
-bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+region/i, async (ctx) => {
+bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   let country = ctx.match[1].toLowerCase();
   if (country === "uk") country = "united kingdom";
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
+  let c = [];
   try {
     const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
     const results = await response.json();
-    const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
-    if (c === undefined) {
-      ctx.reply('Sorry, no data for ' + country);
-      return;
-    }
-    // We found the country, it is in 'c'. Now get the regions
-    const regions = c.region.map(r => r.name).join('\n')
-
-    ctx.reply(regions);
-    setTimeout(() => {
-      ctx.replyWithMarkdown('Example:\n*corona* ' + titleCase(c.country) + ' *region* ' + titleCase(c.region[0].name));
-    }, 1000);
+    c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
   }
   catch (err) {
-    console.log('Error hears(corona region country):', err)
-    ctx.reply('Ouch, something went wrong, sorry 😟')
+    console.log('Error hears(CORONA country REGION):', err);
+    ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
+    return
   }
+  if (c === undefined || c === null) {
+    ctx.reply('Sorry, no data for ' + country);
+    return;
+  }
+  // Now get ALL regions
+  let date = c.region[0].data[c.region[0].data.length - 1].t;
+  let str = '*' + c.country + '*\nNew cases per 100.000\nFor 14 days ending '
+  str += moment(date, 'YYYYWW').add(6, 'd').format('MMM D');
+  // Build a list of regions
+  let l = [];
+  c.region.forEach(reg => {
+    l.push({
+      value: reg.data[reg.data.length - 1].v,
+      pvalue: reg.data[reg.data.length - 2].v,
+      change: (reg.data[reg.data.length - 1].v > reg.data[reg.data.length - 2].v) ? '📈 ' : '📉 ',
+      name: reg.name
+    });
+  });
+  // Then sort the list based on most recent 14-day value
+  l.sort((a, b) => b.value - a.value);
+  // Then build the resulting string ready for printing
+  l.forEach(x => {
+    str += '\n' + x.change + x.name + ': *' + x.value + '*' + ' (was ' + x.pvalue + ')'
+  });
+  ctx.replyWithMarkdown(str);
 })
-
-
 
 //
 // CORONA REGION
 //
-bot.hears(/co[rv][a-z]+[ ]+region/i, async (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+bot.hears(/co[rv][a-z]+[ ]+reg/i, async (ctx) => {
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply(ctx.update.message.from.first_name + ', getting list of countries we have regional data for...');
   try {
     const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
@@ -413,7 +386,7 @@ bot.hears(/co[rv][a-z]+[ ]+region/i, async (ctx) => {
 //
 bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
   let country = ctx.match[1];
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   // catch some common spellings, the name matching really should be improved
   country = (country.toLowerCase() == "north america") ? "Northern America" : country;
   country = (country.toLowerCase() == "usa") ? "US" : country;
@@ -476,7 +449,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
 // Corona - respond with World chart
 //
 bot.hears(/(corona)|(covid)/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   setTimeout(() => {
     ctx.reply('Other related data:',
       Markup.inlineKeyboard([
@@ -523,7 +496,7 @@ function replyCo2500K(ctx) {
 // CO2 YEARS - Respond with text and buttons for three images
 //
 bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   switch (parseInt(ctx.match[1], 10)) {
     case 10: return replyCo210(ctx); break;
     case 2000: return replyCo22000(ctx); break;
@@ -538,7 +511,7 @@ bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
 //
 bot.hears(/co2/i, async (ctx) => {
   const firstname = ctx.update.message.from.first_name;
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply(firstname + ', please wait while we get the latest CO2 measurements from NOAA Earth Systems Research Lab in Hawaii');
   try {
     const response = await fetch("https://api.dashboard.eco/maunaloaco2-daily");
@@ -586,7 +559,7 @@ bot.action('co2last5M', (ctx) => {
 //
 bot.hears(/sea[ ]*l/i, async (ctx) => {
   const firstname = ctx.update.message.from.first_name;
-  logMessage(ctx.update.message.from.username, ctx.update.message.text);
+  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply(firstname + ', please wait while I get the latest sea level measurements from CSIRO in Australia');
   try {
     const response = await fetch("https://api.dashboard.eco/CSIRO_Alt");
