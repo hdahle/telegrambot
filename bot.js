@@ -339,23 +339,30 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   }
   // Now get ALL regions
   let date = c.region[0].data[c.region[0].data.length - 1].t;
-  let str = '*' + c.country + '*\nNew cases per 100.000\nFor 14 days ending '
+  let str = '*' + c.country + '*\nNew cases per 100.000, 14 days ending ';
   str += moment(date, 'YYYYWW').add(6, 'd').format('MMM D');
+  str += '\nThe symbols show the trend over the last 4 weeks\n';
   // Build a list of regions
   let l = [];
   c.region.forEach(reg => {
+    let d = reg.data;
+    let len = reg.data.length;
     l.push({
-      value: reg.data[reg.data.length - 1].v,
-      pvalue: reg.data[reg.data.length - 2].v,
-      change: (reg.data[reg.data.length - 1].v > reg.data[reg.data.length - 2].v) ? '📈 ' : '📉 ',
+      v: [d[len - 1].v, d[len - 2].v, d[len - 3].v, d[len - 4].v, d[len - 5].v],
+      c: [
+        d[len - 1].v > d[len - 2].v ? '📈' : '📉',
+        d[len - 2].v > d[len - 3].v ? '📈' : '📉',
+        d[len - 3].v > d[len - 4].v ? '📈' : '📉',
+        d[len - 4].v > d[len - 5].v ? '📈' : '📉',
+      ],
       name: reg.name
     });
   });
   // Then sort the list based on most recent 14-day value
-  l.sort((a, b) => b.value - a.value);
+  l.sort((a, b) => b.v[0] - a.v[0]);
   // Then build the resulting string ready for printing
   l.forEach(x => {
-    str += '\n' + x.change + x.name + ': *' + x.value + '*' + ' (was ' + x.pvalue + ')'
+    str += '\n' + x.c[3] + x.c[2] + x.c[1] + x.c[0] + ' ' + x.name + ': *' + x.v[0] + '*' //+ ' (was ' + x.v[1] + ')'
   });
   ctx.replyWithMarkdown(str);
 })
