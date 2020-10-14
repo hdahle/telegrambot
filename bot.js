@@ -32,22 +32,12 @@ const Extra = require('telegraf/extra')
 const Markup = require('telegraf/markup')
 const bot = new Telegraf(apiKey);
 const fetch = require('node-fetch');
-//const { count } = require('console');
-
 
 bot.catch((err, ctx) => {
+  //console.log(ctx)
   console.log('Bot Error ' + ctx.updateType
-    + '\n  Error code:' + err.code
-    + '\n  Error descr:' + err.description)
+    + '\n  Ctx:' + ctx)
 });
-
-function titleCase(str) {
-  var splitStr = str.toLowerCase().split(' ');
-  for (var i = 0; i < splitStr.length; i++) {
-    splitStr[i] = splitStr[i].charAt(0).toUpperCase() + splitStr[i].substring(1);
-  }
-  return splitStr.join(' ');
-}
 
 function logMessage(user, msg) {
   console.log(moment().format("YY-MM-DD hh:mm"), user, msg)
@@ -316,12 +306,68 @@ bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
 })
 
 //
+// CORONA REGION TOP/ALL/BOT
+//
+bot.action(/coronaregion[ ](europe|afr|latin a|north[ern]* a|asia|ocea)[a-z]*[ ]+(top|all|bot|sorted)/i, async (ctx) => {
+  let reg = ctx.match[1].toLowerCase();
+  let grp = (ctx.match[2] === undefined) ? null : ctx.match[2].toLowerCase();
+  //let grr = (ctx.match[3] === undefined) ? null : ctx.match[3].toLowerCase();
+  logMessage(ctx.update.callback_query.from.first_name, 'hears: eur/afr/.../ocea grp');
+  let countries = [];
+  try {
+    const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
+    const results = await response.json();
+    console.log('coro', reg, 'results:', results.data.length)
+    countries = results.data.filter(d => {
+      if (d.region) {
+        let r = d.region.toLowerCase().startsWith(reg);
+        if (r) return r;
+        return d.region.toLowerCase().includes(reg);
+      } else {
+        return false;
+      }
+    });
+    console.log('countries:', countries.length);
+  }
+  catch (err) {
+    ctx.reply('Ouch, something went wrong, sorry 😟')
+    return;
+  }
+  if (grp !== 'sorted') countries.sort((a, b) => b.this14 / b.population - a.this14 / a.population);
+  if (grp === 'top') countries = countries.slice(0, 10);
+  if (grp === 'bot') countries = countries.slice(-10);
+  // Now run through all countries, build list of trends and data for each country
+  let str = '*' + countries[0].region + '*\n'
+    + 'New cases per 100.000, 14 days ending '
+    + moment(countries[0].data[countries[0].data.length - 1].t).format('dddd, MMM D')
+    + '\n'
+    + 'The symbols illustrate the trend over the last 3 weeks\n\n';
+  countries.forEach(c => {
+    if (c.data.length < 36) return;
+    let d0 = c.data[c.data.length - 1].y - c.data[c.data.length - 15].y;
+    let d1 = c.data[c.data.length - 8].y - c.data[c.data.length - 22].y;
+    let d2 = c.data[c.data.length - 15].y - c.data[c.data.length - 29].y;
+    let d3 = c.data[c.data.length - 22].y - c.data[c.data.length - 36].y;
+    let t0 = (d0 > d1) ? '📈' : '📉';
+    let t1 = (d1 > d2) ? '📈' : '📉';
+    let t2 = (d2 > d3) ? '📈' : '📉';
+    let rate = (Math.trunc(d0 / c.population) / 10);
+    rate = (rate > 10) ? Math.trunc(rate) : rate;
+    // Add a line for each country
+    str += t2 + t1 + t0 + c.country + ' *' + rate + '*\n'
+  });
+  str += '\n_Country data is updated every morning_'
+  ctx.replyWithMarkdown(str);
+})
+
+
+//
 // CORONA country REGION
 //
 bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   let country = ctx.match[1].toLowerCase();
+  logMessage(ctx.update.message.from.first_name, 'hears:coro country reg:' + country);
   if (country === "uk") country = "united kingdom";
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   let c = [];
   try {
     const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
@@ -329,9 +375,9 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
     c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
   }
   catch (err) {
-    console.log('Error hears(CORONA country REGION):', err);
+    console.log('Error hears (CORONA country REGION):', err);
     ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
-    return
+    return;
   }
   if (c === undefined || c === null) {
     ctx.reply('Sorry, no data for ' + country);
@@ -339,9 +385,9 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   }
   // Now get ALL regions
   let date = c.region[0].data[c.region[0].data.length - 1].t;
-  let str = '*' + c.country + '*\nNew cases per 100.000, 14 days ending ';
-  str += moment(date, 'YYYYWW').add(6, 'd').format('MMM D');
-  str += '\nThe symbols show the trend over the last 4 weeks\n';
+  let str = '*' + c.country + '*\nNew cases per 100.000, 14 days ending '
+    + moment(date, 'YYYYWW').add(6, 'd').format('dddd, MMM D')
+    + '\nThe symbols show the trend over the last 4 weeks\n';
   // Build a list of regions
   let l = [];
   c.region.forEach(reg => {
@@ -362,7 +408,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   l.sort((a, b) => b.v[0] - a.v[0]);
   // Then build the resulting string ready for printing
   l.forEach(x => {
-    str += '\n' + x.c[3] + x.c[2] + x.c[1] + x.c[0] + ' ' + x.name + ': *' + x.v[0] + '*' //+ ' (was ' + x.v[1] + ')'
+    str += '\n' + x.c[2] + x.c[1] + x.c[0] + ' ' + x.name + ': *' + x.v[0] + '*' //+ ' (was ' + x.v[1] + ')'
   });
   ctx.replyWithMarkdown(str);
 })
@@ -371,7 +417,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
 // CORONA REGION
 //
 bot.hears(/co[rv][a-z]+[ ]+reg/i, async (ctx) => {
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
+  logMessage(ctx.update.message.from.first_name, 'hears:coro region');
   ctx.reply(ctx.update.message.from.first_name + ', getting list of countries we have regional data for...');
   try {
     const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
@@ -392,64 +438,164 @@ bot.hears(/co[rv][a-z]+[ ]+reg/i, async (ctx) => {
 // CORONA COUNTRY - respond with deaths and cases
 //
 bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
-  let country = ctx.match[1];
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
+  let country = ctx.match[1].toLowerCase();
+  logMessage(ctx.update.message.from.first_name, 'hears:coro ' + country);
   // catch some common spellings, the name matching really should be improved
-  country = (country.toLowerCase() == "north america") ? "Northern America" : country;
-  country = (country.toLowerCase() == "usa") ? "US" : country;
+  country = (country == "north america") ? "Northern America" : country;
+  country = (country == "usa") ? "US" : country;
   // occasionally let the user know we're getting data from JHU
   if (Math.random() > 0.8) {
-    ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the latest data from Johns Hopkins University');
+    ctx.reply(ctx.update.message.from.first_name + ', please wait - getting data from Johns Hopkins University');
   }
-  setTimeout(async () => {
+  // Fetch 'deaths' and 'confirmed' from API server
+  ["deaths", "confirmed"].forEach(async (s) => {
+    let c;
     try {
-      const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
+      const response = await fetch("https://api.dashboard.eco/covid-" + s + "-summary");
       const results = await response.json();
-      // now try to find country in the data array
-      //const c = results.data.find((x) => country.toLowerCase() == x.country.toLowerCase());
-      const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
+      // Find country: First try a full match
+      c = results.data.find((x) => x.country.toLowerCase() === country);
+      // Then try matching the start
       if (c === undefined) {
-        ctx.replyWithMarkdown('Sorry, no data for ' + country + '\nType *corona list* for a list of countries');
-        return;
+        c = results.data.find((x) => x.country.toLowerCase().startsWith(country));
       }
-      const trend = (c.this14 > c.prev14) ? ' 📈 (up from ' : ' 📉 (down from '
-      ctx.replyWithMarkdown(c.country
-        + ' total deaths: ' + c.total + ' 💀  '
-        + '\nLast 14 days: ' + c.this14 + trend
-        + c.prev14 + ')'
-        + '\nTotal deaths per 100.000: *' + Math.trunc(c.total / c.population) / 10 + '*'
-      );
+      if (c === undefined) {
+        c = results.data.find((x) => x.country.toLowerCase().includes(country));
+      }
     }
     catch (err) {
-      console.log('Error hears(corona country):', err);
-      ctx.reply('Unable to find that, sorry 😟')
+      logMessage('hears: corona country, Error:', err);
+      ctx.reply('Unable to find that, sorry 😟');
+      return;
     }
-    setTimeout(async () => {
-      try {
-        const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
-        const results = await response.json();
-        // now try to find country in the data array
-        const c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
-        if (c === undefined) {
-          ctx.reply('Sorry, no data for ' + country);
+
+    if (c === undefined) {
+      ctx.replyWithMarkdown('Sorry, no data for ' + country + '\nType *corona list* for a list of countries');
+      return;
+    }
+    logMessage('hears: coro xxxxx', c.country + ' ' + c.region);
+    const trend = (c.this14 > c.prev14) ? ' 📈 (up from ' : ' 📉 (down from ';
+    if (s === 'deaths') {
+      let rate = Math.trunc(c.total / c.population) / 10;
+      rate = (rate > 10) ? Math.trunc(rate) : rate;
+      ctx.replyWithMarkdown('*' + c.country + '*'
+        + ' total deaths: ' + c.total + ' 💀 \n'
+        + 'Total deaths per 100.000: *' + rate + '*'
+      );
+    } else {
+      // For CASES we also present additional options to the user
+      setTimeout(async () => {
+        let rate = Math.trunc(c.this14 / c.population) / 10;
+        rate = (rate > 10) ? Math.trunc(rate) : rate;
+        let ratePrev = Math.trunc(c.prev14 / c.population) / 10;
+        ratePrev = (ratePrev > 10) ? Math.trunc(ratePrev) : ratePrev;
+        ctx.replyWithMarkdown('*' + c.country + '*'
+          + ' total cases: ' + c.total + ' 😷\n'
+          + 'Last 14 days: ' + c.this14 + trend + c.prev14 + ')\n'
+          + 'New cases per 100.000: *' + rate + '*' + trend + ratePrev + ')'
+        );
+
+        // If COUNTRY is actually a REGION, let user have a list of contries within the region
+        logMessage('hears: coro xxxxx', c.country + ' ' + c.region);
+        if (c.region === 'world') {
+          let inlineKbd = [
+            Markup.callbackButton('All', 'coronaregion ' + c.country + ' all'),
+            Markup.callbackButton('Alphabetical', 'coronaregion ' + c.country + ' sorted'),
+            Markup.callbackButton('Top 10', 'coronaregion ' + c.country + ' top'),
+            Markup.callbackButton('Bottom 10', 'coronaregion ' + c.country + ' bot')
+          ];
+          if (c.country === 'Oceania' || c.country === 'Northern America') {
+            inlineKbd.pop(); inlineKbd.pop();
+          }
+          ctx.replyWithMarkdown('Overview of countries within *' + c.country + '*:',
+            Markup.inlineKeyboard(inlineKbd).extra()
+          );
           return;
         }
-        const trend = (c.this14 > c.prev14) ? ' 📈 (up from ' : ' 📉 (down from '
-        //console.log(c);
-        ctx.replyWithMarkdown(c.country
-          + ' total cases: ' + c.total + ' 😷'
-          + '\nLast 14 days: ' + c.this14 + trend
-          + c.prev14 + ')'
-          + '\nNew cases per 100.000: *' + Math.trunc(c.this14 / c.population / 10) + '*'
-          + trend + Math.trunc(c.prev14 / c.population / 10) + ')'
-        );
-      }
-      catch (err) {
-        console.log('Error hears(corona country):', err)
-        ctx.reply('Unable to find that, sorry 😟')
-      }
-    }, 250);
-  }, 250);
+
+        // Now see if we have REGIONAL data for the country we're looking at
+        let cr = null;
+        try {
+          const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
+          const results = await response.json();
+          console.log(country, c.country);
+          cr = results.data.find((x) => x.country.toLowerCase().startsWith((country === 'uk') ? 'united kingdom' : c.country.toLowerCase()));
+        }
+        catch (err) {
+          ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
+          return;
+        }
+        if (cr === undefined || cr === null) {
+          return;
+        }
+        setTimeout(() => {
+          ctx.replyWithMarkdown('We also have regional data for *' + cr.country + '*:',
+            Markup.inlineKeyboard([
+              Markup.callbackButton('All', 'detail ' + cr.country + ' all'),
+              Markup.callbackButton('Alphabetical', 'detail ' + cr.country + ' sorted'),
+              Markup.callbackButton('Top 10', 'detail ' + cr.country + ' top'),
+              Markup.callbackButton('Bottom 10', 'detail ' + cr.country + ' bot')
+            ]).extra()
+          );
+        }, 250);
+      }, 250);
+    }
+  })
+})
+
+//
+// CORONA REGION TOP/ALL/BOT
+//
+bot.action(/detail+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+(top|bot|all|sorted)/i, async (ctx) => {
+  let country = ctx.match[1].toLowerCase();
+  let grp = ctx.match[2].toLowerCase();
+  if (country === "uk") country = "united kingdom";
+  logMessage(ctx.update.callback_query.from.first_name, 'action: detail country grp:' + country + grp);
+  let c = [];
+  try {
+    const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
+    const results = await response.json();
+    c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
+  }
+  catch (err) {
+    console.log('A detail country / Error:', err);
+    ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
+    return;
+  }
+  if (c === undefined || c === null) {
+    ctx.reply('Sorry, no data for ' + country);
+    return;
+  }
+  // Now get ALL regions
+  let date = c.region[0].data[c.region[0].data.length - 1].t;
+  let str = '*' + c.country + '*\nNew cases per 100.000, 14 days ending '
+    + moment(date, 'YYYYWW').add(6, 'd').format('dddd, MMM D')
+    + '\nThe symbols show the trend over the last 4 weeks\n';
+  // Build a list of regions
+  let l = [];
+  c.region.forEach(reg => {
+    let d = reg.data;
+    let len = reg.data.length;
+    l.push({
+      v: [d[len - 1].v, d[len - 2].v, d[len - 3].v, d[len - 4].v, d[len - 5].v],
+      c: [
+        d[len - 1].v > d[len - 2].v ? '📈' : '📉',
+        d[len - 2].v > d[len - 3].v ? '📈' : '📉',
+        d[len - 3].v > d[len - 4].v ? '📈' : '📉',
+        d[len - 4].v > d[len - 5].v ? '📈' : '📉',
+      ],
+      name: reg.name
+    });
+  });
+  if (grp !== 'sorted') l.sort((a, b) => b.v[0] - a.v[0]);
+  if (grp === 'top') l = l.slice(0, 10);
+  if (grp === 'bot') l = l.slice(-10);
+  // Build resulting string, one line per region
+  l.forEach(x => {
+    str += '\n' + x.c[2] + x.c[1] + x.c[0] + ' ' + x.name + ': *' + x.v[0] + '*' //+ ' (was ' + x.v[1] + ')'
+  });
+  str += '\n\n_Regional data is updated weekly, usually late Wednesday_'
+  ctx.replyWithMarkdown(str);
 })
 
 //
@@ -476,42 +622,6 @@ bot.action('corona-deaths-top-20', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
     Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
 })
-
-function replyCo210(ctx) {
-  return ctx.replyWithPhoto({ source: 'img/co2-annual.png' },
-    Extra.caption('The chart uses data from *NOAA ESRL Global Monitoring Division* and shows the atmospheric CO2 levels for each of the last 10 years. ' +
-      'There is a consistent increase in CO2 of about *0.5 - 0.6% per year*. ' +
-      '\nIn 2020 the atmospheric CO2 levels are higher than ever before, as indicated by the upper line in the chart. ' +
-      'This chart is updated daily based on measurements from the Mauna Loa Observatory').markdown()
-  )
-}
-function replyCo22000(ctx) {
-  return ctx.replyWithPhoto({ source: 'img/plotLawDome.png' },
-    Extra.caption('Atmospheric CO2 levels were quite stable for about 2000 years - until the start of the *Industrial Revolution*').markdown()
-  )
-}
-function replyCo2500K(ctx) {
-  return ctx.replyWithPhoto({ source: 'img/plotVostok.png' },
-    Extra.caption('Ice-cores drilled in Antarctica contain trapped air bubbles going back several hundred thousand years. ' +
-      'Homo Sapiens has been around for about 200.000 years. ' +
-      'Atmospheric *CO2 levels were about 180-280ppm* during this time - until the Industrial Revolution ' +
-      'when mankind started burning coal and releasing CO2 into the atmosphere').markdown()
-  )
-}
-
-//
-// CO2 YEARS - Respond with text and buttons for three images
-//
-bot.hears(/co2[ ]+([0-9]+)/i, (ctx) => {
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
-  switch (parseInt(ctx.match[1], 10)) {
-    case 10: return replyCo210(ctx); break;
-    case 2000: return replyCo22000(ctx); break;
-    case 500000: return replyCo2500K(ctx); break;
-    default:
-  }
-  return ctx.reply('I do not know how to respond...😕')
-});
 
 //
 // CO2 - respond with current atmospheric CO2 level from Maunaloa
@@ -550,15 +660,27 @@ bot.hears(/co2/i, async (ctx) => {
 
 bot.action('co2last10', (ctx) => {
   console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'co2last10')
-  return replyCo210(ctx);
+  return ctx.replyWithPhoto({ source: 'img/co2-annual.png' },
+    Extra.caption('The chart uses data from *NOAA ESRL Global Monitoring Division* and shows the atmospheric CO2 levels for each of the last 10 years. ' +
+      'There is a consistent increase in CO2 of about *0.5 - 0.6% per year*. ' +
+      '\nIn 2020 the atmospheric CO2 levels are higher than ever before, as indicated by the upper line in the chart. ' +
+      'This chart is updated daily based on measurements from the Mauna Loa Observatory').markdown()
+  )
 })
 bot.action('co2last2000', (ctx) => {
   console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'co2last2000')
-  return replyCo22000(ctx)
+  return ctx.replyWithPhoto({ source: 'img/plotLawDome.png' },
+    Extra.caption('Atmospheric CO2 levels were quite stable for about 2000 years - until the start of the *Industrial Revolution*').markdown()
+  )
 })
 bot.action('co2last5M', (ctx) => {
   console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'co2last5M')
-  return replyCo2500K(ctx);
+  return ctx.replyWithPhoto({ source: 'img/plotVostok.png' },
+    Extra.caption('Ice-cores drilled in Antarctica contain trapped air bubbles going back several hundred thousand years. ' +
+      'Homo Sapiens has been around for about 200.000 years. ' +
+      'Atmospheric *CO2 levels were about 180-280ppm* during this time - until the Industrial Revolution ' +
+      'when mankind started burning coal and releasing CO2 into the atmosphere').markdown()
+  )
 })
 
 //
