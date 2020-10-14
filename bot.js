@@ -507,9 +507,11 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
           if (c.country === 'Oceania' || c.country === 'Northern America') {
             inlineKbd.pop(); inlineKbd.pop();
           }
-          ctx.replyWithMarkdown('Overview of countries within *' + c.country + '*:',
-            Markup.inlineKeyboard(inlineKbd).extra()
-          );
+          setTimeout(() => {
+            ctx.replyWithMarkdown('Overview of countries within *' + c.country + '*:',
+              Markup.inlineKeyboard(inlineKbd).extra()
+            );
+          }, 500);
           return;
         }
 
@@ -537,7 +539,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
               Markup.callbackButton('Bottom 10', 'detail ' + cr.country + ' bot')
             ]).extra()
           );
-        }, 250);
+        }, 500);
       }, 250);
     }
   })
