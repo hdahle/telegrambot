@@ -265,23 +265,17 @@ bot.hears(/co[rv][a-z]+[ ]+chart[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, (ctx) => {
   let country = ctx.match[1].toLowerCase();
   logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
   let fn = 'ch1.png';
-  switch (country) {
-    case 'world': break;
-    case 'uk': fn = 'ch2.png'; break;
-    case 'united kingdom': fn = 'ch2.png'; break;
-    case 'us': fn = 'ch3.png'; break;
-    case 'united states': fn = 'ch3.png'; break;
-    case 'sweden': fn = 'ch4.png'; break;
-    case 'spain': fn = 'ch5.png'; break;
-    case 'peru': fn = 'ch6.png'; break;
-    case 'norway': fn = 'ch7.png'; break;
-    case 'italy': fn = 'ch8.png'; break;
-    case 'france': fn = 'ch9.png'; break;
-    default: fn = 'ch1.png'; country = 'the world'; break;
+
+  console.log(filename);
+  try {
+    let filename = 'covid' + country.replace(/[^a-z]/gi, "_") + '.png';
+    ctx.replyWithPhoto({ source: 'img/' + 'covid-UK.png' },
+      Extra.caption('⚰️ Number of deaths in ' + country)
+    );
+
+  } catch (err) {
+    console.log('File not found', filename);
   }
-  ctx.replyWithPhoto({ source: 'img/' + fn },
-    Extra.caption('⚰️ Number of deaths in ' + country)
-  );
 })
 
 //
@@ -387,7 +381,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   let date = c.region[0].data[c.region[0].data.length - 1].t;
   let str = '*' + c.country + '*\nNew cases per 100.000, 14 days ending '
     + moment(date, 'YYYYWW').add(6, 'd').format('dddd, MMM D')
-    + '\nThe symbols show the trend over the last 4 weeks\n';
+    + '\nThe symbols show the trend over the last 3 weeks\n';
   // Build a list of regions
   let l = [];
   c.region.forEach(reg => {
@@ -410,6 +404,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+reg/i, async (ctx) => {
   l.forEach(x => {
     str += '\n' + x.c[2] + x.c[1] + x.c[0] + ' ' + x.name + ': *' + x.v[0] + '*' //+ ' (was ' + x.v[1] + ')'
   });
+  str += '\n\n_Regional data is updated weekly, usually late Wednesday_'
   ctx.replyWithMarkdown(str);
 })
 
@@ -447,102 +442,129 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
   if (Math.random() > 0.8) {
     ctx.reply(ctx.update.message.from.first_name + ', please wait - getting data from Johns Hopkins University');
   }
-  // Fetch 'deaths' and 'confirmed' from API server
-  ["deaths", "confirmed"].forEach(async (s) => {
-    let c;
-    try {
-      const response = await fetch("https://api.dashboard.eco/covid-" + s + "-summary");
-      const results = await response.json();
-      // Find country: First try a full match
-      c = results.data.find((x) => x.country.toLowerCase() === country);
-      // Then try matching the start
-      if (c === undefined) {
-        c = results.data.find((x) => x.country.toLowerCase().startsWith(country));
-      }
-      if (c === undefined) {
-        c = results.data.find((x) => x.country.toLowerCase().includes(country));
-      }
-    }
-    catch (err) {
-      logMessage('hears: corona country, Error:', err);
-      ctx.reply('Unable to find that, sorry 😟');
-      return;
-    }
 
-    if (c === undefined) {
-      ctx.replyWithMarkdown('Sorry, no data for ' + country + '\nType *corona list* for a list of countries');
-      return;
+  // Fetch 'deaths' and 'confirmed' from API server
+  let cDeaths;
+  let cCases;
+
+  // Fetchs DEATHS from API server
+  try {
+    const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
+    const results = await response.json();
+    // Find country: First try a full match
+    cDeaths = results.data.find((x) => x.country.toLowerCase() === country);
+    // Then try matching the start
+    if (cDeaths === undefined) {
+      cDeaths = results.data.find((x) => x.country.toLowerCase().startsWith(country));
     }
-    logMessage('hears: coro xxxxx', c.country + ' ' + c.region);
-    const trend = (c.this14 > c.prev14) ? ' 📈 (up from ' : ' 📉 (down from ';
-    if (s === 'deaths') {
-      let rate = Math.trunc(c.total / c.population) / 10;
-      rate = (rate > 10) ? Math.trunc(rate) : rate;
-      ctx.replyWithMarkdown('*' + c.country + '*'
-        + ' total deaths: ' + c.total + ' 💀 \n'
-        + 'Total deaths per 100.000: *' + rate + '*'
+    if (cDeaths === undefined) {
+      cDeaths = results.data.find((x) => x.country.toLowerCase().includes(country));
+    }
+  }
+  catch (err) {
+    logMessage('Unable to fetch covid-deaths-summary,', err);
+    ctx.reply('Unable to find that, sorry 😟. Try again?');
+    return;
+  }
+
+  // Fetch confirmed CASES from API server
+  try {
+    const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
+    const results = await response.json();
+    // Find country: First try a full match
+    cCases = results.data.find((x) => x.country.toLowerCase() === country);
+    // Then try matching the start
+    if (cCases === undefined) {
+      cCases = results.data.find((x) => x.country.toLowerCase().startsWith(country));
+    }
+    if (cCases === undefined) {
+      cCases = results.data.find((x) => x.country.toLowerCase().includes(country));
+    }
+  }
+  catch (err) {
+    logMessage('Unable to fetch covid-confirmed-summary:', err);
+    ctx.reply('Unable to find that, sorry 😟. Try again?');
+    return;
+  }
+
+  // We have fetched cDeaths and cCases
+  logMessage('covid-confirmed-summary and covid-deaths-summary ok', cDeaths.country + ' ' + cDeaths.region);
+  // Deaths: dRate is deaths per 100.000
+  let dRate = Math.trunc(cDeaths.total / cDeaths.population) / 10;
+  dRate = (dRate > 10) ? Math.trunc(dRate) : dRate;
+  // Cases: cRate is number of cases per 100.000 over the last 14 days
+  let cRate = Math.trunc(cCases.this14 / cCases.population) / 10;
+  cRate = (cRate > 10) ? Math.trunc(cRate) : cRate;
+  // Filename 
+  let filename = 'img/covid-' + cDeaths.country.replace(/[^a-z]/gi, "_") + '.png';
+
+  try {
+    if (fs.existsSync(filename)) {
+      ctx.replyWithPhoto(
+        { source: filename },
+        {
+          caption: 'Total deaths so far: *' + cDeaths.total + '*\nDeaths per 100.000: *' + dRate + '*\n' + 'Cases per 100.000 last 14 days: *' + cRate + '*',
+          parse_mode: 'Markdown'
+        }
       );
     } else {
-      // For CASES we also present additional options to the user
-      setTimeout(async () => {
-        let rate = Math.trunc(c.this14 / c.population) / 10;
-        rate = (rate > 10) ? Math.trunc(rate) : rate;
-        let ratePrev = Math.trunc(c.prev14 / c.population) / 10;
-        ratePrev = (ratePrev > 10) ? Math.trunc(ratePrev) : ratePrev;
-        ctx.replyWithMarkdown('*' + c.country + '*'
-          + ' total cases: ' + c.total + ' 😷\n'
-          + 'Last 14 days: ' + c.this14 + trend + c.prev14 + ')\n'
-          + 'New cases per 100.000: *' + rate + '*' + trend + ratePrev + ')'
-        );
-
-        // If COUNTRY is actually a REGION, let user have a list of contries within the region
-        logMessage('hears: coro xxxxx', c.country + ' ' + c.region);
-        if (c.region === 'world') {
-          let inlineKbd = [
-            Markup.callbackButton('All', 'coronaregion ' + c.country + ' all'),
-            Markup.callbackButton('Alphabetical', 'coronaregion ' + c.country + ' sorted'),
-            Markup.callbackButton('Top 10', 'coronaregion ' + c.country + ' top'),
-            Markup.callbackButton('Bottom 10', 'coronaregion ' + c.country + ' bot')
-          ];
-          if (c.country === 'Oceania' || c.country === 'Northern America') {
-            inlineKbd.pop(); inlineKbd.pop();
-          }
-          setTimeout(() => {
-            ctx.replyWithMarkdown('Overview of countries within *' + c.country + '*:',
-              Markup.inlineKeyboard(inlineKbd).extra()
-            );
-          }, 500);
-          return;
-        }
-
-        // Now see if we have REGIONAL data for the country we're looking at
-        let cr = null;
-        try {
-          const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
-          const results = await response.json();
-          console.log(country, c.country);
-          cr = results.data.find((x) => x.country.toLowerCase().startsWith((country === 'uk') ? 'united kingdom' : c.country.toLowerCase()));
-        }
-        catch (err) {
-          ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
-          return;
-        }
-        if (cr === undefined || cr === null) {
-          return;
-        }
-        setTimeout(() => {
-          ctx.replyWithMarkdown('We also have regional data for *' + cr.country + '*:',
-            Markup.inlineKeyboard([
-              Markup.callbackButton('All', 'detail ' + cr.country + ' all'),
-              Markup.callbackButton('Alphabetical', 'detail ' + cr.country + ' sorted'),
-              Markup.callbackButton('Top 10', 'detail ' + cr.country + ' top'),
-              Markup.callbackButton('Bottom 10', 'detail ' + cr.country + ' bot')
-            ]).extra()
-          );
-        }, 500);
-      }, 250);
+      logMessage('File not found:', filename)
+      ctx.replyWithMarkdown(
+        '*' + cDeaths.country + '*\nTotal deaths so far: *' + cDeaths.total + '*\nDeaths per 100.000: *' + dRate + '*\n' + 'Cases per 100.000 last 14 days: *' + cRate + '*'
+      );
     }
-  })
+  } catch (err) {
+    console.error(err)
+  }
+
+  // If COUNTRY is actually a GLOBAL REGION, let user have a list of contries within the region
+  logMessage('Looking for countries within global Region', cDeaths.country + ' ' + cDeaths.region);
+  if (cDeaths.region === 'world') {
+    let inlineKbd = [
+      Markup.callbackButton('All', 'coronaregion ' + cDeaths.country + ' all'),
+      Markup.callbackButton('Alphabetical', 'coronaregion ' + cDeaths.country + ' sorted'),
+      Markup.callbackButton('Top 10', 'coronaregion ' + cDeaths.country + ' top'),
+      Markup.callbackButton('Bottom 10', 'coronaregion ' + cDeaths.country + ' bot')
+    ];
+    if (cDeaths.country === 'Oceania' || cDeaths.country === 'Northern America') {
+      inlineKbd.pop(); inlineKbd.pop();
+    }
+    setTimeout(() => {
+      ctx.replyWithMarkdown('Overview of countries in *' + cDeaths.country + '*:',
+        Markup.inlineKeyboard(inlineKbd).extra()
+      );
+    }, 500);
+    return;
+  }
+
+  // Now see if we have REGIONAL data for the country we're looking at
+  logMessage('Looking for subnnational regions within country', cDeaths.country + ' ' + cDeaths.region);
+  let cr = null;
+  try {
+    const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
+    const results = await response.json();
+    console.log(country, cDeaths.country);
+    cr = results.data.find((x) => x.country.toLowerCase().startsWith((country === 'uk') ? 'united kingdom' : cDeaths.country.toLowerCase()));
+  }
+  catch (err) {
+    ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
+    return;
+  }
+  if (cr === undefined || cr === null) {
+    return;
+  }
+
+  setTimeout(() => {
+    ctx.replyWithMarkdown('More information on regions in *' + cr.country + '*:',
+      Markup.inlineKeyboard([
+        Markup.callbackButton('All', 'detail ' + cr.country + ' all'),
+        Markup.callbackButton('Alphabetical', 'detail ' + cr.country + ' sorted'),
+        Markup.callbackButton('Top 10', 'detail ' + cr.country + ' top'),
+        Markup.callbackButton('Bottom 10', 'detail ' + cr.country + ' bot')
+      ]).extra()
+    );
+  }, 500);
+
 })
 
 //
