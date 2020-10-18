@@ -259,30 +259,10 @@ bot.hears(/corona beer/i, (ctx) => {
 })
 
 //
-// CORONA CHART country
-//
-bot.hears(/co[rv][a-z]+[ ]+chart[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, (ctx) => {
-  let country = ctx.match[1].toLowerCase();
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
-  let fn = 'ch1.png';
-
-  console.log(filename);
-  try {
-    let filename = 'covid' + country.replace(/[^a-z]/gi, "_") + '.png';
-    ctx.replyWithPhoto({ source: 'img/' + 'covid-UK.png' },
-      Extra.caption('⚰️ Number of deaths in ' + country)
-    );
-
-  } catch (err) {
-    console.log('File not found', filename);
-  }
-})
-
-//
 // CORONA LIST - respond with list of countries we have data for
 //
 bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
+  logMessage(ctx.update.message.from.first_name, ctx.update.message.text);
   ctx.reply(ctx.update.message.from.first_name + ', please wait while we get the list of countries we have data for');
   try {
     const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
@@ -466,6 +446,10 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
     ctx.reply('Unable to find that, sorry 😟. Try again?');
     return;
   }
+  if (cDeaths === undefined) {
+    ctx.replyWithMarkdown('Unable to find *' + country + '* -  sorry 😟');
+    return;
+  }
 
   // Fetch confirmed CASES from API server
   try {
@@ -484,6 +468,11 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
   catch (err) {
     logMessage('Unable to fetch covid-confirmed-summary:', err);
     ctx.reply('Unable to find that, sorry 😟. Try again?');
+    return;
+  }
+
+  if (cCases === undefined) {
+    ctx.replyWithMarkdown('Unable to find *' + country + '* -  sorry 😟');
     return;
   }
 
@@ -564,7 +553,6 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
       ]).extra()
     );
   }, 500);
-
 })
 
 //
@@ -635,16 +623,13 @@ bot.action('corona-deaths-top-20', (ctx) => {
 bot.hears(/covid|coro/i, async (ctx) => {
   logMessage(ctx.update.message.from.first_name, 'Corona');
   let country = 'world';
-
   // occasionally let the user know we're getting data from JHU
   if (Math.random() > 0.8) {
     ctx.reply(ctx.update.message.from.first_name + ', please wait - getting data from Johns Hopkins University');
   }
-
   // Fetch 'deaths' and 'confirmed' from API server
   let cDeaths;
   let cCases;
-
   // Fetchs DEATHS from API server
   try {
     const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
@@ -726,8 +711,6 @@ bot.hears(/covid|coro/i, async (ctx) => {
     ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona asia` ... and so on')
   }, 2000);
 
-
-
   // If COUNTRY is actually a GLOBAL REGION, let user have a list of contries within the region
   logMessage('Looking for countries within global Region', cDeaths.country + ' ' + cDeaths.region);
   if (cDeaths.country.toLowerCase() === 'world') {
@@ -743,7 +726,6 @@ bot.hears(/covid|coro/i, async (ctx) => {
     return;
   }
 })
-
 
 
 //
