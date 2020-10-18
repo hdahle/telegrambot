@@ -302,7 +302,7 @@ bot.hears(/co[rv][a-z]+[ ]+list/i, async (ctx) => {
 //
 // CORONA REGION TOP/ALL/BOT
 //
-bot.action(/coronaregion[ ](europe|afr|latin a|north[ern]* a|asia|ocea)[a-z]*[ ]+(top|all|bot|sorted)/i, async (ctx) => {
+bot.action(/coronaregion[ ](europe|afr|latin a|north[ern]* a|asia|ocea|world)[a-z]*[ ]+(top|all|bot|sorted)/i, async (ctx) => {
   let reg = ctx.match[1].toLowerCase();
   let grp = (ctx.match[2] === undefined) ? null : ctx.match[2].toLowerCase();
   //let grr = (ctx.match[3] === undefined) ? null : ctx.match[3].toLowerCase();
@@ -538,7 +538,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
   }
 
   // Now see if we have REGIONAL data for the country we're looking at
-  logMessage('Looking for subnnational regions within country', cDeaths.country + ' ' + cDeaths.region);
+  logMessage('Subnational regions within country', cDeaths.country + ' ' + cDeaths.region);
   let cr = null;
   try {
     const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
@@ -622,11 +622,99 @@ bot.action(/detail+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+(top|bot|all|sorted)/i, async
   ctx.replyWithMarkdown(str);
 })
 
+bot.action('corona-deaths-top-20', (ctx) => {
+  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'corona top20')
+  return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
+    Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
+})
+
+
 //
-// Corona - respond with World chart
+// CORONA - respond with WORLD deaths and cases 
 //
-bot.hears(/(corona)|(covid)/i, (ctx) => {
-  logMessage(ctx.update.message.from.username + '/' + ctx.update.message.from.first_name, ctx.update.message.text);
+bot.hears(/covid|coro/i, async (ctx) => {
+  logMessage(ctx.update.message.from.first_name, 'Corona');
+  let country = 'world';
+
+  // occasionally let the user know we're getting data from JHU
+  if (Math.random() > 0.8) {
+    ctx.reply(ctx.update.message.from.first_name + ', please wait - getting data from Johns Hopkins University');
+  }
+
+  // Fetch 'deaths' and 'confirmed' from API server
+  let cDeaths;
+  let cCases;
+
+  // Fetchs DEATHS from API server
+  try {
+    const response = await fetch("https://api.dashboard.eco/covid-deaths-summary");
+    const results = await response.json();
+    // Find country: First try a full match
+    cDeaths = results.data.find((x) => x.country.toLowerCase() === country);
+    // Then try matching the start
+    if (cDeaths === undefined) {
+      cDeaths = results.data.find((x) => x.country.toLowerCase().startsWith(country));
+    }
+    if (cDeaths === undefined) {
+      cDeaths = results.data.find((x) => x.country.toLowerCase().includes(country));
+    }
+  }
+  catch (err) {
+    logMessage('Unable to fetch covid-deaths-summary,', err);
+    ctx.reply('Unable to find that, sorry 😟. Try again?');
+    return;
+  }
+
+  // Fetch confirmed CASES from API server
+  try {
+    const response = await fetch("https://api.dashboard.eco/covid-confirmed-summary");
+    const results = await response.json();
+    // Find country: First try a full match
+    cCases = results.data.find((x) => x.country.toLowerCase() === country);
+    // Then try matching the start
+    if (cCases === undefined) {
+      cCases = results.data.find((x) => x.country.toLowerCase().startsWith(country));
+    }
+    if (cCases === undefined) {
+      cCases = results.data.find((x) => x.country.toLowerCase().includes(country));
+    }
+  }
+  catch (err) {
+    logMessage('Unable to fetch covid-confirmed-summary:', err);
+    ctx.reply('Unable to find that, sorry 😟. Try again?');
+    return;
+  }
+
+  // We have fetched cDeaths and cCases
+  logMessage('covid-confirmed-summary and covid-deaths-summary ok', cDeaths.country + ' ' + cDeaths.region);
+  // Deaths: dRate is deaths per 100.000
+  let dRate = Math.trunc(cDeaths.total / cDeaths.population) / 10;
+  dRate = (dRate > 10) ? Math.trunc(dRate) : dRate;
+  // Cases: cRate is number of cases per 100.000 over the last 14 days
+  let cRate = Math.trunc(cCases.this14 / cCases.population) / 10;
+  cRate = (cRate > 10) ? Math.trunc(cRate) : cRate;
+  // Filename 
+  let filename = 'img/covid-' + cDeaths.country.replace(/[^a-z]/gi, "_") + '.png';
+
+  try {
+    if (fs.existsSync(filename)) {
+      ctx.replyWithPhoto(
+        { source: filename },
+        {
+          caption: 'Total deaths so far: *' + cDeaths.total + '*\nDeaths per 100.000: *' + dRate + '*\n' + 'Cases per 100.000 last 14 days: *' + cRate + '*',
+          parse_mode: 'Markdown'
+        }
+      );
+    } else {
+      logMessage('File not found:', filename)
+      ctx.replyWithMarkdown(
+        '*' + cDeaths.country + '*\nTotal deaths so far: *' + cDeaths.total + '*\nDeaths per 100.000: *' + dRate + '*\n' + 'Cases per 100.000 last 14 days: *' + cRate + '*'
+      );
+    }
+  } catch (err) {
+    console.error(err)
+  }
+
   setTimeout(() => {
     ctx.reply('Other related data:',
       Markup.inlineKeyboard([
@@ -635,17 +723,28 @@ bot.hears(/(corona)|(covid)/i, (ctx) => {
     )
   }, 1000);
   setTimeout(() => {
-    ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona brazil` ... and so on')
+    ctx.replyWithMarkdown('Hint: You can also type `corona spain` or `corona asia` ... and so on')
   }, 2000);
-  return ctx.replyWithPhoto({ source: 'img/ch1.png' },
-    Extra.caption('⚰️ Number of deaths per day, worldwide')
-  );
+
+
+
+  // If COUNTRY is actually a GLOBAL REGION, let user have a list of contries within the region
+  logMessage('Looking for countries within global Region', cDeaths.country + ' ' + cDeaths.region);
+  if (cDeaths.country.toLowerCase() === 'world') {
+    let inlineKbd = [
+      Markup.callbackButton('All', 'coronaregion ' + cDeaths.country + ' all'),
+      Markup.callbackButton('Alphabetical', 'coronaregion ' + cDeaths.country + ' sorted'),
+    ];
+    setTimeout(() => {
+      ctx.replyWithMarkdown('Quick overview of world regions:',
+        Markup.inlineKeyboard(inlineKbd).extra()
+      );
+    }, 500);
+    return;
+  }
 })
-bot.action('corona-deaths-top-20', (ctx) => {
-  console.log(moment().format('YY-MM-DD hh:mm'), ctx.update.callback_query.from.username, 'corona top20')
-  return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
-    Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
-})
+
+
 
 //
 // CO2 - respond with current atmospheric CO2 level from Maunaloa
