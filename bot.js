@@ -534,6 +534,7 @@ bot.hears(/co[rv][a-z]+[ ]+([a-zA-Z][a-zA-Z\' \-]+)/i, async (ctx) => {
     const results = await response.json();
     console.log(country, cDeaths.country);
     cr = results.data.find((x) => x.country.toLowerCase().startsWith((country === 'uk') ? 'united kingdom' : cDeaths.country.toLowerCase()));
+    console.log(cr)
   }
   catch (err) {
     ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
@@ -562,7 +563,7 @@ bot.action(/detail+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+(top|bot|all|sorted)/i, async
   let country = ctx.match[1].toLowerCase();
   let grp = ctx.match[2].toLowerCase();
   if (country === "uk") country = "united kingdom";
-  logMessage(ctx.update.callback_query.from.first_name, 'action: detail country grp:' + country + grp);
+  logMessage(ctx.update.callback_query.from.first_name, 'action: detail country grp:' + country + ' ' + grp);
   let c = [];
   try {
     const response = await fetch("https://api.dashboard.eco/ecdc-weekly");
@@ -570,7 +571,6 @@ bot.action(/detail+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+(top|bot|all|sorted)/i, async
     c = results.data.find((x) => x.country.toLowerCase().includes(country.toLowerCase()));
   }
   catch (err) {
-    console.log('A detail country / Error:', err);
     ctx.reply('Ouch, something went wrong getting data from the cloud, sorry 😟');
     return;
   }
@@ -583,22 +583,29 @@ bot.action(/detail+[ ]+([a-zA-Z][a-zA-Z\' \-]+)[ ]+(top|bot|all|sorted)/i, async
   let str = '*' + c.country + '*\nNew cases per 100.000, 14 days ending '
     + moment(date, 'YYYYWW').add(6, 'd').format('dddd, MMM D')
     + '\nThe symbols show the trend over the last 4 weeks\n';
+
   // Build a list of regions
   let l = [];
   c.region.forEach(reg => {
     let d = reg.data;
     let len = reg.data.length;
-    l.push({
-      v: [d[len - 1].v, d[len - 2].v, d[len - 3].v, d[len - 4].v, d[len - 5].v],
-      c: [
-        d[len - 1].v > d[len - 2].v ? '📈' : '📉',
-        d[len - 2].v > d[len - 3].v ? '📈' : '📉',
-        d[len - 3].v > d[len - 4].v ? '📈' : '📉',
-        d[len - 4].v > d[len - 5].v ? '📈' : '📉',
-      ],
-      name: reg.name
-    });
+    if (len < 5) {
+      logMessage('WARNING', 'Missing data for ' + country + ' ' + reg.name);
+    }
+    if (len >= 5) {
+      l.push({
+        v: [d[len - 1].v, d[len - 2].v, d[len - 3].v, d[len - 4].v, d[len - 5].v],
+        c: [
+          d[len - 1].v > d[len - 2].v ? '📈' : '📉',
+          d[len - 2].v > d[len - 3].v ? '📈' : '📉',
+          d[len - 3].v > d[len - 4].v ? '📈' : '📉',
+          d[len - 4].v > d[len - 5].v ? '📈' : '📉',
+        ],
+        name: reg.name
+      });
+    }
   });
+
   if (grp !== 'sorted') l.sort((a, b) => b.v[0] - a.v[0]);
   if (grp === 'top') l = l.slice(0, 10);
   if (grp === 'bot') l = l.slice(-10);
@@ -615,7 +622,6 @@ bot.action('corona-deaths-top-20', (ctx) => {
   return ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
     Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
 })
-
 
 //
 // CORONA - respond with WORLD deaths and cases 
