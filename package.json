@@ -12,7 +12,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "bot": "node bot.js --apikey `cat apikey.txt`",
-    "testbot": "node bot.js --apikey `cat apikey-test.txt`"
+    "testbot": "node bot.js --apikey `cat apikey-test.txt`",
+    "testcoronabot": "node coronabot.js --apikey `cat apikey-test.txt`",
+    "runcoronabot": "node coronabot.js --apikey `cat apikey-coronabot.txt`"
   },
   "repository": {
     "type": "git",

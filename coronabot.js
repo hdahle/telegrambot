@@ -13,7 +13,7 @@ var fs = require('fs');
 var argv = require('minimist')(process.argv.slice(2));
 let apiKey = argv.apikey;
 if (!apiKey) {
-  console.log('Usage: tbot --apikey <telegram api key>');
+  console.log('Usage: coronabot --apikey <telegram api key>');
   return;
 }
 
@@ -100,6 +100,14 @@ bot.hears(/list/i, async (ctx) => {
   }
 })
 
+//
+// TOP - list of countries with highest death rates
+//
+bot.hears(/top/i, async (ctx) => {
+  //logMessage(ctx.update.callback_query.from.username, 'top');
+  ctx.replyWithPhoto({ source: 'img/corona-deaths-top-20.png' },
+    Extra.caption('These are the countries with the highest number of deaths per million, we update this chart every day.').markdown())
+})
 
 //
 // COUNTRY - respond with deaths and cases

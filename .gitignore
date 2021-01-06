@@ -1,2 +1,5 @@
-img/
 apikey*
+node_modules
+node_modules/*
+plock.json
+img
