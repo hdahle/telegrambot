@@ -1,7 +1,10 @@
 # telegrambot
-A naive Bot for Telegram using the Telegraf bot framework
+A naive Bot for Telegram using the Telegraf bot framework.
 
-## Launching bot
+## Pre-requisites
+An API key is required. Ask the 'botfather' for one. I use two keys, one for testing and one for production.
+
+## Launch bot
 ````
 node bot.js -apikey telegramapikey
 ````
