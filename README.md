@@ -6,15 +6,15 @@ An API key is required. Ask the 'botfather' for one. I use two keys, one for tes
 
 ## Launch bot
 ````
-node bot.js -apikey telegramapikey
+node coronabot.js --apikey telegramapikey
 ````
 Reminder to self: I store the API key in a file ````apikey.text```` which is listed in ````.gitignore```` :
 ````
-node bot.js -apikey `cat apikey.txt`
+node coronabot.js --apikey `cat apikey.txt`
 ````
 Running the bot under PM2 is the better approach:
 ````
-pm2 start bot.js -- --apikey `cat apikey.txt`
+pm2 start coronabot.js -- --apikey `cat apikey.txt`
 ````
 Note: Everything before '--' is for PM2, everything after '--' is for bot.js
 ## Images/Charts displayed by the bot
